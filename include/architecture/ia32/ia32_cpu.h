@@ -409,7 +409,7 @@ public:
         return compare;
     }
 
-    static void smp_barrier(unsigned long cores = cores()) { CPU_Common::smp_barrier<&finc>(cores, id()); }
+    static void smp_barrier(unsigned long cores) { CPU_Common::smp_barrier<&finc>(cores, id()); }
 
     // MMU operations
     static Reg  pd() { return cr3(); }
@@ -614,12 +614,12 @@ inline void CPU::Context::pop(bool interrupt)
 
 inline void CPU::Context::push(bool interrupt)
 {
-if(!interrupt)
+if(!interrupt) {
     ASM("       pop     %esi            # recover return address from the stack \n"
         "       pushf                   # create a stack structure for IRET     \n"
         "       push    %cs             #   with FLAGS, CS                      \n"
         "       push    %esi            #   and IP                              \n");
-
+}
     ASM("       pusha                   # push registers                        \n");
 }
 
