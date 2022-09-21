@@ -21,6 +21,7 @@ class Thread
     friend class System;                // for init()
 
 protected:
+    static const bool preemptive = Traits<Thread>::preemptive;
     static const bool reboot = Traits<System>::reboot;
 
     static const unsigned int QUANTUM = Traits<Thread>::QUANTUM;
@@ -42,9 +43,11 @@ public:
     // Thread Priority
     typedef unsigned int Priority;
     enum {
-        HIGH = 0,
-        NORMAL = 15,
-        LOW = 31
+        MAIN   = 0,
+        HIGH   = 1,
+        NORMAL = (unsigned(1) << (sizeof(int) * 8 - 1)) - 4,
+        LOW    = (unsigned(1) << (sizeof(int) * 8 - 1)) - 3,
+        IDLE   = (unsigned(1) << (sizeof(int) * 8 - 1)) - 2
     };
 
     // Thread Queue
@@ -75,8 +78,8 @@ public:
 
     int join();
     void pass();
-    void suspend();
-    void resume();
+    void suspend() { suspend(false); }
+    void resume() { resume(false); }
 
     static Thread * volatile self() { return running(); }
     static void yield();
@@ -91,6 +94,9 @@ protected:
     static void lock() { CPU::int_disable(); }
     static void unlock() { CPU::int_enable(); }
     static bool locked() { return CPU::int_disabled(); }
+
+    void suspend(bool locked);
+    void resume(bool unpreemptive);
 
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
@@ -114,6 +120,7 @@ protected:
     Thread * volatile _joining;
     Queue::Element _link;
 
+    static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
 
 private:
