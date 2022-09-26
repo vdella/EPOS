@@ -320,7 +320,7 @@ void Thread::dispatch(Thread * prev, Thread * next)
 
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
-        // passing the volatile to switch_constext forces it to push prev onto the stack,
+        // passing the volatile to switch_context forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
