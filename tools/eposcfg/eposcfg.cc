@@ -23,7 +23,7 @@ using namespace EPOS::S::U;
 
 // Constants
 const unsigned int TOKENS = 31;
-const unsigned int COMPONENTS = 62;
+const unsigned int COMPONENTS = 64;
 const unsigned int STRING_SIZE = 128;
 
 // Configuration tokens (integer tokens first, marked by INT_TOKENS)
@@ -73,6 +73,8 @@ char components[COMPONENTS][STRING_SIZE] = {
     "PCI",
     "IC",
     "Timer",
+    "OTP",
+    "IO",
     "RTC",
     "UART",
     "USB",
@@ -182,7 +184,6 @@ int main(int argc, char **argv)
 // Populates the values for the string configurations
 void populate_strings()
 {
-
     // Integer value tokens
     char string[STRING_SIZE];
     const char i32format[] = "0x%08x";
@@ -337,7 +338,7 @@ void populate_strings()
     case Traits<Build>::LM3S811:        set_token_value("MMOD", "lm3s811");            break;
     case Traits<Build>::Zynq:           set_token_value("MMOD", "zynq");               break;
     case Traits<Build>::Realview_PBX:   set_token_value("MMOD", "realview_pbx");       break;
-    case Traits<Build>::Raspberry_Pi3:  set_token_value("MMOD", "raspberry_pi3");     break;
+    case Traits<Build>::Raspberry_Pi3:  set_token_value("MMOD", "raspberry_pi3");      break;
     case Traits<Build>::SiFive_E:       set_token_value("MMOD", "sifive_e");           break;
     case Traits<Build>::SiFive_U:       set_token_value("MMOD", "sifive_u");           break;
     default:                            set_token_value("MMOD", "unsuported");         break;
@@ -360,6 +361,8 @@ void populate_strings()
     if(Traits<PCI>::enabled)            enable_component("PCI");
     if(Traits<IC>::enabled)             enable_component("IC");
     if(Traits<Timer>::enabled)          enable_component("Timer");
+    if(Traits<OTP>::enabled)            enable_component("OTP");
+    if(Traits<IO>::enabled)             enable_component("IO");
     if(Traits<RTC>::enabled)            enable_component("RTC");
     if(Traits<UART>::enabled)           enable_component("UART");
     if(Traits<USB>::enabled)            enable_component("USB");
