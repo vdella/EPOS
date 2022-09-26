@@ -1,4 +1,4 @@
-#include<time.h>
+#include <time.h>
 #include <synchronizer.h>
 #include <process.h>
 
