@@ -181,6 +181,8 @@ enum
     EEPROM_ID,
     SCRATCHPAD_ID,
     UART_ID,
+    OTP_ID,
+    IO_ID,
     DISPLAY_ID,
     KEYBOARD_ID,
     NIC_ID,
@@ -204,6 +206,8 @@ template<> struct Type<Machine> { static const Type_Id ID = MACHINE_ID; };
 template<> struct Type<IC> { static const Type_Id ID = IC_ID; };
 template<> struct Type<Timer> { static const Type_Id ID = TIMER_ID; };
 template<> struct Type<UART> { static const Type_Id ID = UART_ID; };
+template<> struct Type<OTP> { static const Type_Id ID = OTP_ID; };
+template<> struct Type<IO> { static const Type_Id ID = IO_ID; };
 template<> struct Type<RTC> { static const Type_Id ID = RTC_ID; };
 template<> struct Type<PCI> { static const Type_Id ID = PCI_ID; };
 template<> struct Type<Display> { static const Type_Id ID = DISPLAY_ID; };

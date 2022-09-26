@@ -174,6 +174,8 @@ namespace EPOS {
 #define __PMU_H                 __HEADER_ARCH(pmu)
 
 #define __UART_H                __HEADER_MACH(uart)
+#define __OTP_H                 __HEADER_MACH(otp)
+#define __IO_H                  __HEADER_MACH(io)
 #endif
 
 #include <system/meta.h>
