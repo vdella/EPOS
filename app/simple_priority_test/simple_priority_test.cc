@@ -1,15 +1,18 @@
-#include <utility/ostream.h>
 #include <process.h>
+#include <utility/ostream.h>
+#include <time.h>
 
 using namespace EPOS;
-
 OStream cout;
+
+#define WAIT_TIME 49999
 
 const unsigned int thread_num = 5;
 Thread * t[thread_num];
 int code;
 
 int func_a() {
+    Delay wait_micro_sec(WAIT_TIME);
     cout << code-- << " " << endl;
     return 0;
 }
@@ -31,7 +34,7 @@ int main()
     cout << "Simple Test" << endl;
     Thread * c = new Thread(&func_b);
     c->join();
-    cout << "\nThe end!" << endl;
     delete c;
+    cout << "\nThe end!" << endl;
     return 0;
 }
