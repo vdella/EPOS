@@ -2,6 +2,7 @@
 #define __riscv_io_h
 
 #include <architecture/cpu.h>
+#include <machine/io.h>
 
 #define __arch_getl(a)			(*(volatile unsigned int *)(a))
 #define __arch_putl(v, a)		(*(volatile unsigned int *)(a) = (v))
@@ -18,7 +19,7 @@
 
 __BEGIN_SYS
 
-class IO
+class IO: private IO_Common
 {
 
 public:

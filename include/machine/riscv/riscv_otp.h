@@ -14,6 +14,8 @@ __BEGIN_SYS
 #define PDIN_RESET_VAL		    0x00
 #define PTM_RESET_VAL		    0x00
 
+#define BIT(nr)                 (1UL << (nr))
+
 #define PCLK_ENABLE_VAL			BIT(0)
 #define PCLK_DISABLE_VAL		0x00
 
@@ -92,26 +94,26 @@ public:
         int fuse_buf[fuse_count];
 
         // Init OTP.
-        writel(PDSTB_DEEP_STANDBY_ENABLE, OTP::PDSTB);
-        writel(PTRIM_ENABLE_INPUT, OTP::PTRIM);
-        writel(PCE_ENABLE_INPUT, OTP::PCE);
+        writel(PDSTB_DEEP_STANDBY_ENABLE, PDSTB);
+        writel(PTRIM_ENABLE_INPUT, PTRIM);
+        writel(PCE_ENABLE_INPUT, PCE);
 
         // Read all requested fuses.
         for (unsigned int i = 0; i < fuse_count; i++, fuse_id++) {
-            writel(fuse_id, OTP::PA);
+            writel(fuse_id, PA);
 
             // Cycle clock to read.
-            writel(PCLK_ENABLE_VAL, OTP::PCLK);
-            writel(PCLK_DISABLE_VAL, OTP::PCLK);
-
+            writel(PCLK_ENABLE_VAL, PCLK);
+            writel(PCLK_DISABLE_VAL, PCLK);
+            
             // Read the value.
-            fuse_buf[i] = readl(OTP::PDOUT);
+            fuse_buf[i] = readl(PDOUT);
         }
 
         // Shut down.
-        writel(PCE_DISABLE_INPUT, OTP::PCE);
-        writel(PTRIM_DISABLE_INPUT, OTP::PTRIM);
-        writel(PDSTB_DEEP_STANDBY_DISABLE, OTP::PDSTB);
+        writel(PCE_DISABLE_INPUT, PCE);
+        writel(PTRIM_DISABLE_INPUT, PTRIM);
+        writel(PDSTB_DEEP_STANDBY_DISABLE, PDSTB);
 
         // Copy out.
         memcpy(buf, fuse_buf, size);
@@ -135,7 +137,7 @@ public:
         unsigned int fuse_id = offset / BYTES_PER_FUSE;
         unsigned int fuse_count = size / BYTES_PER_FUSE;
         Reg32 *write_buf = (Reg32 *) buf;
-        int i, pas, bit;
+        int pas, bit;
 
         // Check bounds.
         if (offset < 0 || size < 0)
@@ -146,49 +148,49 @@ public:
             return -1;
 
         // Init OTP.
-        writel(PDSTB_DEEP_STANDBY_ENABLE, OTP::PDSTB);
-        writel(PTRIM_ENABLE_INPUT, OTP::PTRIM);
+        writel(PDSTB_DEEP_STANDBY_ENABLE, PDSTB);
+        writel(PTRIM_ENABLE_INPUT, PTRIM);
 
         // Reset registers.
-        writel(PCLK_DISABLE_VAL, OTP::PCLK);
-        writel(PA_RESET_VAL, OTP::PA);
-        writel(PAS_RESET_VAL, OTP::PAS);
-        writel(PAIO_RESET_VAL, OTP::PAIO);
-        writel(PDIN_RESET_VAL, OTP::PDIN);
-        writel(PWE_WRITE_DISABLE, OTP::PWE);
-        writel(PTM_FUSE_PROGRAM_VAL, OTP::PTM);
+        writel(PCLK_DISABLE_VAL, PCLK);
+        writel(PA_RESET_VAL, PA);
+        writel(PAS_RESET_VAL, PAS);
+        writel(PAIO_RESET_VAL, PAIO);
+        writel(PDIN_RESET_VAL, PDIN);
+        writel(PWE_WRITE_DISABLE, PWE);
+        writel(PTM_FUSE_PROGRAM_VAL, PTM);
 
-        writel(PCE_ENABLE_INPUT, OTP::PCE);
-        writel(PPROG_ENABLE_INPUT, OTP::PPROG);
+        writel(PCE_ENABLE_INPUT, PCE);
+        writel(PPROG_ENABLE_INPUT, PPROG);
 
         // Write all requested fuses.
         for (unsigned int i = 0; i < fuse_count; i++, fuse_id++) {
-            writel(fuse_id, OTP::PA);
+            writel(fuse_id, PA);
             Reg32 write_data = *(write_buf++);
 
             for (pas = 0; pas < 2; pas++) {
-                writel(pas, OTP::PAS);
+                writel(pas, PAS);
 
                 for (bit = 0; bit < 32; bit++) {
-                    writel(bit, OTP::PAIO);
-                    writel(((write_data >> bit) & 1), OTP::PDIN);
+                    writel(bit, PAIO);
+                    writel(((write_data >> bit) & 1), PDIN);
 
-                    writel(PWE_WRITE_ENABLE, OTP::PWE);
-                    writel(PWE_WRITE_DISABLE, OTP::PWE);
+                    writel(PWE_WRITE_ENABLE, PWE);
+                    writel(PWE_WRITE_DISABLE, PWE);
                 }
             }
 
-            writel(PAS_RESET_VAL, OTP::PAS);
+            writel(PAS_RESET_VAL, PAS);
         }
 
         // Shut down.
-        writel(PWE_WRITE_DISABLE, OTP::PWE);
-        writel(PPROG_DISABLE_INPUT, OTP::PPROG);
-        writel(PCE_DISABLE_INPUT, OTP::PCE);
-        writel(PTM_RESET_VAL, OTP::PTM);
+        writel(PWE_WRITE_DISABLE, PWE);
+        writel(PPROG_DISABLE_INPUT, PPROG);
+        writel(PCE_DISABLE_INPUT, PCE);
+        writel(PTM_RESET_VAL, PTM);
 
-        writel(PTRIM_DISABLE_INPUT, OTP::PTRIM);
-        writel(PDSTB_DEEP_STANDBY_DISABLE, OTP::PDSTB);
+        writel(PTRIM_DISABLE_INPUT, PTRIM);
+        writel(PDSTB_DEEP_STANDBY_DISABLE, PDSTB);
 
         return size;
     }
