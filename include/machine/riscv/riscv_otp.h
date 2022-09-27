@@ -75,7 +75,7 @@ public:
 public:
     SiFive_OTP() {}
 
-    int read(int offset, void *buf, int size)
+    int read_shot(int offset, void *buf, int size)
     {
         // Check if offset and size are multiple of BYTES_PER_FUSE.
         if ((size % BYTES_PER_FUSE) || (offset % BYTES_PER_FUSE)) {
@@ -84,6 +84,8 @@ public:
 
         unsigned int fuse_id = offset / BYTES_PER_FUSE;
         unsigned int fuse_count = size / BYTES_PER_FUSE;
+
+        db<OTP>(WRN) << "Started reading OTP!" << endl;
 
         // Check bounds.
         if (offset < 0 || size < 0)
@@ -95,26 +97,55 @@ public:
 
         int fuse_buf[fuse_count];
 
+        db<OTP>(WRN) << "Gathering registers!" << endl;
+
         // Init OTP.
         reg(SiFive_OTP::PDSTB) = PDSTB_DEEP_STANDBY_ENABLE;
         reg(SiFive_OTP::PTRIM) = PTRIM_ENABLE_INPUT;
         reg(SiFive_OTP::PCE) = PCE_ENABLE_INPUT;
 
+        db<OTP>(WRN) << "PDSTB = " << SiFive_OTP::PDSTB << endl;
+        db<OTP>(WRN) << "PDSTB REG = " << reg(SiFive_OTP::PDSTB) << endl;
+        
+        db<OTP>(WRN) << "PTRIM = " << SiFive_OTP::PTRIM << endl;
+        db<OTP>(WRN) << "PTRIM REG = " << reg(SiFive_OTP::PTRIM) << endl;
+
+        db<OTP>(WRN) << "PCE = " << SiFive_OTP::PCE << endl;
+        db<OTP>(WRN) << "PCE REG = " << reg(SiFive_OTP::PCE) << endl;
+
         // Read all requested fuses.
         for (unsigned int i = 0; i < fuse_count; i++, fuse_id++) {
             reg(SiFive_OTP::PA) = fuse_id;
+            db<OTP>(WRN) << "PA = " << SiFive_OTP::PA << endl;
+            db<OTP>(WRN) << "PA REG = " << reg(SiFive_OTP::PA) << endl;
 
             /* cycle clock to read */
             reg(SiFive_OTP::PCLK) = PCLK_ENABLE_VAL;
-            // EPOS Timer
+            db<OTP>(WRN) << "PCLK = " << SiFive_OTP::PCLK << endl;
+            db<OTP>(WRN) << "PCLK REG = " << reg(SiFive_OTP::PCLK) << endl;
+
             Delay tcd(TCD_DELAY);
+
             reg(SiFive_OTP::PCLK) = PCLK_DISABLE_VAL;
-            // EPOS Timer
+            db<OTP>(WRN) << "PCLK = " << SiFive_OTP::PCLK << endl;
+            db<OTP>(WRN) << "PCLK REG = " << reg(SiFive_OTP::PCLK) << endl;
+            
             Delay tkl(TKL_DELAY);
 
             /* read the value */
+            db<OTP>(WRN) << "PDOUT = " << SiFive_OTP::PDOUT << endl;
+            db<OTP>(WRN) << "PDOUT REG = " << reg(SiFive_OTP::PDOUT) << endl;
             fuse_buf[i] = reg(SiFive_OTP::PDOUT);
         }
+
+        db<OTP>(WRN) << "PCE = " << SiFive_OTP::PCE << endl;
+        db<OTP>(WRN) << "PCE REG = " << reg(SiFive_OTP::PCE) << endl;
+
+        db<OTP>(WRN) << "PTRIM = " << SiFive_OTP::PTRIM << endl;
+        db<OTP>(WRN) << "PTRIM REG = " << reg(SiFive_OTP::PTRIM) << endl;
+
+        db<OTP>(WRN) << "PDSTB = " << SiFive_OTP::PDSTB << endl;
+        db<OTP>(WRN) << "PDSTB REG = " << reg(SiFive_OTP::PDSTB) << endl;
 
         // Shut down.
         reg(SiFive_OTP::PCE) = PCE_DISABLE_INPUT;
@@ -133,7 +164,7 @@ public:
     *
     * offset and size are assumed aligned to the size of the fuses (32-bit).
     */
-    int write(int offset, const void *buf, int size)
+    int write_shot(int offset, const void *buf, int size)
     {
         // Check if offset and size are multiple of BYTES_PER_FUSE.
         if ((size % BYTES_PER_FUSE) || (offset % BYTES_PER_FUSE)) {
@@ -156,7 +187,6 @@ public:
         // Init OTP.
         reg(SiFive_OTP::PDSTB) = PDSTB_DEEP_STANDBY_ENABLE;
         reg(SiFive_OTP::PTRIM) = PTRIM_ENABLE_INPUT;
-
         reg(SiFive_OTP::PCLK) = PCLK_DISABLE_VAL;
         reg(SiFive_OTP::PA) = PA_RESET_VAL;
         reg(SiFive_OTP::PAS) = PAS_RESET_VAL;

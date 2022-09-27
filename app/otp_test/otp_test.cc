@@ -17,10 +17,11 @@ int main()
     for(int i = 0; i < BUF_SIZE; i++)
     {
         write_buffer[i] = 0;
-        read_buffer[i] = 10;
+        read_buffer[i] = -1;
     }
+ 
 
-    int b = otp.write(offset *4, &write_buffer, (BUF_SIZE - offset) * 4);
+    int b = otp.write_shot(offset *4, &write_buffer, (BUF_SIZE - offset) * 4);
 
     cout << "write size=" << b << endl;
 
@@ -30,7 +31,7 @@ int main()
     cout << hex << "> buf=" << write_buffer[BUF_SIZE -1] << endl;
     cout << hex << "> buf=" << write_buffer[BUF_SIZE -2] << endl;
 
-    int c = otp.read(offset *4, &read_buffer, (BUF_SIZE - offset) *4);
+    int c = otp.read_shot(offset *4, &read_buffer, (BUF_SIZE - offset) *4);
 
     cout << "read size=" << c << endl;
 

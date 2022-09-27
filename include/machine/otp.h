@@ -13,8 +13,8 @@ protected:
     OTP_Common() {}
 
 public:
-    int read(int offset, void *buf, int size);
-    int write(int offset, const void *buf, int size);
+    int read_shot(int offset, void *buf, int size);
+    int write_shot(int offset, const void *buf, int size);
 };
 
 __END_SYS
