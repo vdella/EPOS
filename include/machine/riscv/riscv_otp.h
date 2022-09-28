@@ -116,35 +116,35 @@ public:
         IO::writel(PTRIM_ENABLE_INPUT,  (volatile void*) SiFive_OTP::PTRIM);
         IO::writel(PCE_ENABLE_INPUT, (volatile void*) SiFive_OTP::PCE);
 
-        db<OTP>(WRN) << "PDSTB REG = " << reg(SiFive_OTP::PDSTB) << endl;
-        db<OTP>(WRN) << "PTRIM REG = " << reg(SiFive_OTP::PTRIM) << endl;
-        db<OTP>(WRN) << "PCE REG = " << reg(SiFive_OTP::PCE) << endl;
+        // db<OTP>(WRN) << "PDSTB REG = " << reg(SiFive_OTP::PDSTB) << endl;
+        // db<OTP>(WRN) << "PTRIM REG = " << reg(SiFive_OTP::PTRIM) << endl;
+        // db<OTP>(WRN) << "PCE REG = " << reg(SiFive_OTP::PCE) << endl;
 
         // Read all requested fuses.
         for (unsigned int i = 0; i < fuse_count; i++, fuse_id++)
         {
             IO::writel(fuse_id, (volatile void*) SiFive_OTP::PA);
-            db<OTP>(WRN) << "PA REG = " << reg(SiFive_OTP::PA) << endl;
+            // db<OTP>(WRN) << "PA REG = " << reg(SiFive_OTP::PA) << endl;
 
             /* cycle clock to read */
             IO::writel(PCLK_ENABLE_VAL, (volatile void*) SiFive_OTP::PCLK);
-            db<OTP>(WRN) << "PCLK REG = " << reg(SiFive_OTP::PCLK) << endl;
+            // db<OTP>(WRN) << "PCLK REG = " << reg(SiFive_OTP::PCLK) << endl;
 
             Delay tcd(TCD_DELAY);
 
             IO::writel(PCLK_DISABLE_VAL, (volatile void*) SiFive_OTP::PCLK);
-            db<OTP>(WRN) << "PCLK REG = " << reg(SiFive_OTP::PCLK) << endl;
+            // db<OTP>(WRN) << "PCLK REG = " << reg(SiFive_OTP::PCLK) << endl;
 
             Delay tkl(TKL_DELAY);
 
             /* read the value */
-            db<OTP>(WRN) << "PDOUT REG = " << reg(SiFive_OTP::PDOUT) << endl;
+            // db<OTP>(WRN) << "PDOUT REG = " << reg(SiFive_OTP::PDOUT) << endl;
             fuse_buf[i] = IO::readl((volatile void*) SiFive_OTP::PDOUT);
         }
 
-        db<OTP>(WRN) << "PCE REG = " << reg(SiFive_OTP::PCE) << endl;
-        db<OTP>(WRN) << "PTRIM REG = " << reg(SiFive_OTP::PTRIM) << endl;
-        db<OTP>(WRN) << "PDSTB REG = " << reg(SiFive_OTP::PDSTB) << endl;
+        // db<OTP>(WRN) << "PCE REG = " << reg(SiFive_OTP::PCE) << endl;
+        // db<OTP>(WRN) << "PTRIM REG = " << reg(SiFive_OTP::PTRIM) << endl;
+        // db<OTP>(WRN) << "PDSTB REG = " << reg(SiFive_OTP::PDSTB) << endl;
 
         // Shut down.
         IO::writel(PCE_DISABLE_INPUT, (volatile void*) SiFive_OTP::PCE);
@@ -248,11 +248,11 @@ public:
         return size;
     }
 
-private:
-    static volatile CPU::Reg32 &reg(unsigned int o)
-    {
-        return reinterpret_cast<volatile CPU::Reg32 *>[o / sizeof(CPU::Reg32)];
-    }
+//private:
+//    static volatile CPU::Reg32 &reg(unsigned int o)
+//    {
+//        return reinterpret_cast<volatile CPU::Reg32 *>[o / sizeof(CPU::Reg32)];
+//    }
 };
 
 class OTP : private OTP_Common, private SiFive_OTP

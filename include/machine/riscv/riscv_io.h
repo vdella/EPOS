@@ -22,14 +22,14 @@ public:
 
     static void writel(unsigned int val, volatile void *addr)
     {
-        wmb();
+        mb();
         __arch_putl(val, addr);
     }
 
     static unsigned int readl(const volatile void *addr)
     {
         unsigned int val = __arch_getl(addr);
-        rmb();
+        mb();
         return val;
     }
 };
