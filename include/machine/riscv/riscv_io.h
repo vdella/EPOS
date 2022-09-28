@@ -7,8 +7,6 @@
 #define __arch_getl(a)			(*(volatile unsigned int *)(a))
 #define __arch_putl(v, a)		(*(volatile unsigned int *)(a) = (v))
 
-// #define RISCV_FENCE(p, s)       ASM("fence %0, %1" : "p"(p) : "s"(s))
-
 /* These barriers need to enforce ordering on both devices or memory. */
 #define mb()		ASM("fence iorw, iorw")
 #define rmb()		ASM("fence ri, ri")
