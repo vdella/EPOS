@@ -1347,16 +1347,16 @@ public:
     unsigned int grouped_size() const { return _grouped_size; }
 
     Element * search_size(unsigned int s) {
-        Element * e = head();
+        Element * e = tail();
         if(sizeof(Object_Type) < sizeof(Element))
-            for(; e && (e->size() < sizeof(Element) / sizeof(Object_Type) + s) && (e->size() != s); e = e->next());
+            for(; e && (e->size() < sizeof(Element) / sizeof(Object_Type) + s) && (e->size() != s); e = e->prev());
         else
-            for(; e && (e->size() < s); e = e->next());
+            for(; e && (e->size() < s); e = e->prev());
         return e;
     }
 
     void insert_merging(Element * e, Element ** m1, Element ** m2) {
-        db<Lists>(TRC) << "Grouping_List::insert_merging(e=" << e << ")" << endl;
+        db<Lists>(TRC) << "Grouping_List::insert_merging(e=" << e << ", e->size()=" << e->size() << ")" << endl;
 
         _grouped_size += e->size();
         *m1 = *m2 = 0;
@@ -1381,12 +1381,26 @@ public:
         print_head();
         print_tail();
 
+        assert(s >= sizeof(Element));
+
         Element * e = search_size(s);
-        if(e) {
+        Element * new_element = e;  // new free memory block
+        Object_Type * e_ptr = e->object();
+
+        if (e) {
+            e_ptr += s; // base of the memory block now must move upwards in each allocation
             e->shrink(s);
+
+            new_element = new (e_ptr) Element(e_ptr, e->size());    // create new block in the correct address
+
             _grouped_size -= s;
-            if(!e->size())
-                remove(e);
+            insert_tail(new_element);   // since we changed the search direction we add this to the tail end
+            e->size(s);
+
+            remove(e);  // no longer an allocatable memory block
+
+            if(new_element->size()) // insert only if there is space left to use
+                insert_tail(new_element);
         }
 
         return e;

@@ -52,7 +52,7 @@ public:
             return 0;
         }
 
-        long * addr = reinterpret_cast<long *>(e->object() + e->size());
+        long * addr = reinterpret_cast<long *>(e->object());
 
         if(typed)
             *addr++ = reinterpret_cast<long>(this);
