@@ -20,13 +20,10 @@ int main()
     int * d = new int;
     cout << "Address d = " << d << endl;
 
-    int * e = new int;
-    cout << "Address e = " << e << endl;
-
+    // Verifies if they are properly ordered.
     assert(a < b);
     assert(b < c);
     assert(c < d);
-    assert(d < e);
 
     cout << "Freeing b." << endl;
     free(b);
@@ -34,15 +31,13 @@ int main()
     cout << "Freeing c." << endl;
     free(c);
 
-    cout << "Freeing d." << endl;
-    free(d);
-
     int * f = new int;
     cout << "Address f = " << f << endl;
 
     int * g = new int;
     cout << "Address g = " << g << endl;
 
+    // Verifies if f and g are at the same addresses of b and c.
     assert(f == b);
     assert(g == c);
 
