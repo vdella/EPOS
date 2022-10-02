@@ -43,5 +43,8 @@ int main()
     int * g = new int;
     cout << "Address g = " << g << endl;
 
+    assert(f == b);
+    assert(g == c);
+
     return 0;
 }
