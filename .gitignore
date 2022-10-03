@@ -3,3 +3,6 @@
 
 # VSCode's default folder
 .vscode/
+
+# Diffs from activities
+*.txt
