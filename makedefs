@@ -216,7 +216,7 @@ riscv_CC_FLAGS      := -march=rv32gc -mabi=ilp32d -Wl, -mno-relax
 riscv_AS_FLAGS      := -march=rv32gc -mabi=ilp32d
 riscv_LD_FLAGS      := -m elf32lriscv_ilp32f --no-relax
 riscv_EMULATOR     = qemu-system-riscv32 $(QEMU_DEBUG) -machine virt -cpu rv32 -smp $(CPUS) -m $(MEM_SIZE)k -serial mon:stdio -bios none -nographic -no-reboot $(BOOT_ROM) -kernel 
-endif 
+endif
 riscv_DEBUGGER		:= $(COMP_PREFIX)gdb
 riscv_FLASHER		:= 
 riscv_MAGIC		:= --nmagic
@@ -249,9 +249,9 @@ MACH_MAGIC		:= $($(MACH)_MAGIC)
 MACH_IMGSUFF		:= $($(MACH)_IMG_SUFFIX)
 
 ifeq ($(DEBUG),1)
-MACH_CC_FLAGS		:= -g -feliminate-unused-debug-symbols $(MACH_CC_FLAGS)
-MACH_CXX_FLAGS		:= -g -feliminate-unused-debug-symbols $(MACH_CXX_FLAGS)
-MACH_AS_FLAGS		:= -g $(MACH_AS_FLAGS)
+MACH_CC_FLAGS		:= -gdwarf-2 -feliminate-unused-debug-symbols $(MACH_CC_FLAGS)
+MACH_CXX_FLAGS		:= -gdwarf-2 -feliminate-unused-debug-symbols $(MACH_CXX_FLAGS)
+MACH_AS_FLAGS		:= -gdwarf-2 $(MACH_AS_FLAGS)
 MACH_EMULATOR		= $(subst -m ,-gdb tcp::1235 -S -m ,$($(MACH)_EMULATOR))
 endif
 
