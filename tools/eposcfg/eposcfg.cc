@@ -74,7 +74,6 @@ char components[COMPONENTS][STRING_SIZE] = {
     "IC",
     "Timer",
     "OTP",
-    "IO",
     "RTC",
     "UART",
     "USB",
@@ -362,7 +361,6 @@ void populate_strings()
     if(Traits<IC>::enabled)             enable_component("IC");
     if(Traits<Timer>::enabled)          enable_component("Timer");
     if(Traits<OTP>::enabled)            enable_component("OTP");
-    if(Traits<IO>::enabled)             enable_component("IO");
     if(Traits<RTC>::enabled)            enable_component("RTC");
     if(Traits<UART>::enabled)           enable_component("UART");
     if(Traits<USB>::enabled)            enable_component("USB");

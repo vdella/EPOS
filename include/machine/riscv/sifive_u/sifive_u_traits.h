@@ -79,8 +79,6 @@ template <> struct Traits<OTP>: public Traits<Machine_Common>
     static const unsigned int TMS_DELAY      = 1;     // PTM mode setup delay
 };
 
-template <> struct Traits<IO>: public Traits<Machine_Common> {};
-
 template <> struct Traits<UART>: public Traits<Machine_Common>
 {
     static const unsigned int UNITS = 2;

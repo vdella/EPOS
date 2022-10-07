@@ -6,7 +6,7 @@ using namespace EPOS;
 OStream cout;
 SiFive_OTP otp;
 
-const unsigned int BUF_SIZE = 1620;  // As a multiple of 4.
+const unsigned int BUF_SIZE = 16;  // As a multiple of 4.
 const unsigned int offset = 0x00;
 
 int main()
@@ -21,7 +21,6 @@ int main()
     }
 
     unsigned int b = (unsigned int) otp.write_shot(offset, &write_buffer, BUF_SIZE);
-    // 0 * 4, write_buffer, (3840 - 0) * 4
 
     cout << "write size = " << b << endl;
 
