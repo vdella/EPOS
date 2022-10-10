@@ -39,12 +39,13 @@ public:
     typedef MMU::Flags Flags;
 
 public:
-    Segment(unsigned int bytes, Flags flags = Flags::APP);
-    Segment(Phy_Addr phy_addr, unsigned int bytes, Flags flags);
+    Segment(unsigned int bytes, const Flags & flags);
+    //Segment(unsigned int bytes, Flags flags = Flags::APP);
+    //Segment(Phy_Addr phy_addr, unsigned int bytes, Flags flags);
     ~Segment();
 
     unsigned int size() const;
-    Phy_Addr phy_address() const;
+    //Phy_Addr phy_address() const;
     int resize(int amount);
 };
 

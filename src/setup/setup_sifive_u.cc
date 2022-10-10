@@ -57,7 +57,7 @@ Setup::Setup()
     Display::init();
     kout << endl;
     kerr << endl;
-    
+
     si = reinterpret_cast<System_Info *>(&__boot_time_system_info);
     if(si->bm.n_cpus > Traits<Machine>::CPUS)
         si->bm.n_cpus = Traits<Machine>::CPUS;
@@ -133,6 +133,8 @@ void _entry() // machine mode
     CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP
 
     Machine::clear_bss();
+
+
 
     CPU::mstatus(CPU::MPP_M);                           // stay in machine mode at mret
 

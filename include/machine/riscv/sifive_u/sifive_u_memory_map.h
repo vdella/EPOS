@@ -24,6 +24,8 @@ public:
         BOOT_STACK      = RAM_TOP + 1 - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
         FREE_BASE       = RAM_BASE,
         FREE_TOP        = BOOT_STACK,
+        PAGE_START      = 0xff7fffff + 1 - Traits<Machine>::STACK_SIZE - (1024+1) * 4 * 1024,
+        MACHINE         = PAGE_START - 2 * 4096,
 
         // Memory-mapped devices
         BIOS_BASE       = 0x00001000,   // BIOS ROM

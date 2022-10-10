@@ -24,6 +24,7 @@ protected:
     static const unsigned long PAGE_SHIFT = OFFSET_BITS;
     static const unsigned long PAGE_SIZE = 1 << PAGE_SHIFT;
     static const unsigned long DIRECTORY_SHIFT = OFFSET_BITS + PAGE_BITS;
+    static const unsigned long MASTER_SHIFT = DIRECTORY_SHIFT + DIRECTORY_BITS;
 
 public:
     // Memory page
