@@ -134,6 +134,8 @@ void _entry() // machine mode
 
     Machine::clear_bss();
 
+
+
     CPU::mstatus(CPU::MPP_M);                           // stay in machine mode at mret
 
     CPU::mepc(CPU::Reg(&_setup));                       // entry = _setup
