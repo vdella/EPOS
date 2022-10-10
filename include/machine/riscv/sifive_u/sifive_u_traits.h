@@ -23,7 +23,8 @@ public:
     static const unsigned int RAM_BASE          = 0x80000000;                           // 2 GB
     static const unsigned int RAM_TOP           = 0x87ffffff;                           // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
     static const unsigned int MIO_BASE          = 0x00000000;
-    static const unsigned int MIO_TOP           = 0x1fffffff;                           // 512 MB (max 512 MB of MIO => RAM + MIO < 2 G)
+    static const unsigned int MIO_TOP           = 0x1fffffff;
+    //static const unsigned int PAGE_TABLES       = 0x87f00000; // MEM_TOP - 16 MB                       // 512 MB (max 512 MB of MIO => RAM + MIO < 2 G)
 
     // Physical Memory at Boot
     static const unsigned int BOOT              = NOT_USED;

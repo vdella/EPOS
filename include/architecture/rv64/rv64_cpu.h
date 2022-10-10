@@ -212,8 +212,9 @@ public:
     static Reg fr() { Reg r; ASM("mv %0, a0" :  "=r"(r)); return r; }
     static void fr(Reg r) {  ASM("mv a0, %0" : : "r"(r) :); }
 
-    static Reg32 pdp() { return satp() << 12}
-    static void pdp(Reg32 pdp) { satp((1 << 31) | (pdp >> 12); }
+    //4 + 16 + (26 - 9)
+    static Reg pdp() { return satp() << 37; }
+    static void pdp(Reg pdp) {satp((1UL << 63) | (pdp >> 37)); }
 
     static unsigned int id() { return 0; }
     static unsigned int cores() { return 1; }
