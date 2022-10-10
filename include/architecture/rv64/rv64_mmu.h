@@ -28,15 +28,16 @@ public:
     {
     public:
         enum {
-            V   = 1 << 0, //Valid
-            R   = 1 << 1, //Readable
-            W   = 1 << 2, //Writable
-            X   = 1 << 3, //Executable
-            U   = 1 << 4, //User
-            G   = 1 << 5, // Global
-            A   = 1 << 6, //Accesed
-            D   = 1 << 7, //Dirty
-            CT  = 1 << 8, // Contiguous
+            V    = 1 << 0, //Valid
+            R    = 1 << 1, //Readable
+            W    = 1 << 2, //Writable
+            X    = 1 << 3, //Executable
+            U    = 1 << 4, //User
+            G    = 1 << 5, // Global
+            A    = 1 << 6, //Accessed
+            D    = 1 << 7, //Dirty
+
+            CT   = 1 << 8, // Contiguous
             MIO  = 1 << 9, // I/O
             MASK = (1 << 10) - 1,
             APP  = (V | R | W | X),
