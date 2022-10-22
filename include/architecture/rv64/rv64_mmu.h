@@ -12,7 +12,7 @@
 
 __BEGIN_SYS
 
-class MMU: public MMU_Common<9, 9, 12>
+class MMU: public MMU_Common<9, 9, 9, 12>
 {
     friend class CPU;
     friend class Setup_SifiveU;
@@ -78,8 +78,6 @@ public:
                 remap(addr, flags, from , to);
             } else {
                 for(; from < to; from++){
-                    // Log_Addr * pte = phy2log(&ptes[from]);
-                    // *pte = phy2pte(alloc(1), flags);
                     ptes[from] = phy2pte(alloc(1), flags);
 
                 }
@@ -88,8 +86,6 @@ public:
         void remap(Phy_Addr addr, int from, int to, RV64_Flags flags) {
             addr = align_page(addr);
             for( ; from < to; from++) {
-                // Log_Addr * pte = phy2log(&ptes[from]);
-                // *pte = phy2pte(addr, flags);
                 ptes[from] = phy2pte(addr, flags);
                 addr += sizeof(Page);
             }

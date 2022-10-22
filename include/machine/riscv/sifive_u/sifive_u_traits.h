@@ -20,28 +20,29 @@ public:
     static const unsigned int NOT_USED          = 0xffffffff;
 
     // Physical Memory
-    static const unsigned int RAM_BASE          = 0x80000000;                           // 2 GB
-    static const unsigned int RAM_TOP           = 0x87ffffff;                           // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
-    static const unsigned int MIO_BASE          = 0x00000000;
-    static const unsigned int MIO_TOP           = 0x1fffffff;
+    static const unsigned int RAM_BASE          = 0x0000000080000000;                           // 2 GB
+    static const unsigned int RAM_TOP           = 0x0000000087ffffff;                           // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
+    static const unsigned int MIO_BASE          = 0x0000000000000000;
+    static const unsigned int MIO_TOP           = 0x000000001fffffff;
     //static const unsigned int PAGE_TABLES       = 0x87f00000; // MEM_TOP - 16 MB                       // 512 MB (max 512 MB of MIO => RAM + MIO < 2 G)
 
     // Physical Memory at Boot
-    static const unsigned int BOOT              = NOT_USED;
-    static const unsigned int SETUP             = library ? NOT_USED : RAM_BASE;        // RAM_BASE (will be part of the free memory at INIT, using a logical address identical to physical eliminate SETUP relocation)
-    static const unsigned int IMAGE             = 0x80100000;                           // RAM_BASE + 1 MB (will be part of the free memory at INIT, defines the maximum image size; if larger than 3 MB then adjust at SETUP)
+    static const unsigned long BOOT              = NOT_USED;
+    static const unsigned long SETUP             = library ? NOT_USED : RAM_BASE;        // RAM_BASE (will be part of the free memory at INIT, using a logical address identical to physical eliminate SETUP relocation)
+    static const unsigned long IMAGE             = 0x0000000080100000;                           // RAM_BASE + 1 MB (will be part of the free memory at INIT, defines the maximum image size; if larger than 3 MB then adjust at SETUP)
 
     // Logical Memory
-    static const unsigned int APP_LOW           = library ? RAM_BASE : 0x80400000;      // 2 GB + 4 MB
-    static const unsigned int APP_HIGH          = 0xff7fffff;                           // SYS - 1
+    static const unsigned long APP_LOW           = library ? RAM_BASE : 0x0000000080400000;      // 2 GB + 4 MB
+    static const unsigned long APP_HIGH          = 0x00000000ff7ffff;                           // SYS - 1
 
-    static const unsigned int APP_CODE          = APP_LOW;
-    static const unsigned int APP_DATA          = APP_CODE + 4 * 1024 * 1024;
+    static const unsigned long APP_CODE          = APP_LOW;
+    static const unsigned long APP_DATA          = APP_CODE + 4 * 1024 * 1024;
 
-    static const unsigned int INIT              = library ? NOT_USED :0x80080000;       // RAM_BASE + 512 KB (will be part of the free memory at INIT)
-    static const unsigned int PHY_MEM           = 0x20000000;                           // 512 MB (max 1536 MB of RAM)
-    static const unsigned int IO                = 0x00000000;                           // 0 (max 512 MB of IO = MIO_TOP - MIO_BASE)
-    static const unsigned int SYS               = 0xff800000;                           // 4 GB - 8 MB
+    static const unsigned long INIT              = library ? NOT_USED :0x0000000080080000;       // RAM_BASE + 512 KB (will be part of the free memory at INIT)
+    static const unsigned long PHY_MEM           = 0x00000000ff800000;                           // 512 MB (max 1536 MB of RAM)
+    static const unsigned long IO                = 0x0000000000000000;                           // 0 (max 512 MB of IO = MIO_TOP - MIO_BASE)
+    static const unsigned long SYS               = 0xffffff8000000000;                           // 4 GB - 8 MB
+
 
     // Default Sizes and Quantities
     static const unsigned int MAX_THREADS       = 16;
