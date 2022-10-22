@@ -26,18 +26,18 @@ public:
         FREE_TOP        = BOOT_STACK,
 
         // Memory-mapped devices
-        BIOS_BASE       = 0x00001000,   // BIOS ROM
-        TEST_BASE       = 0x00100000,   // SiFive test engine
-        RTC_BASE        = 0x00101000,   // Goldfish RTC
-        UART0_BASE      = emulated ? 0x10000000 : 0x10010000, // NS16550A or SiFive UART
-        CLINT_BASE      = 0x02000000,   // SiFive CLINT
-        TIMER_BASE      = 0x02004000,   // CLINT Timer
-        PLIIC_CPU_BASE  = 0x0c000000,   // SiFive PLIC
-        PRCI_BASE       = emulated ? NOT_USED : 0x10000000,   // SiFive-U Power, Reset, Clock, Interrupt
-        GPIO_BASE       = emulated ? NOT_USED : 0x10060000,   // SiFive-U GPIO
-        OTP_BASE        = emulated ? NOT_USED : 0x10070000,   // SiFive-U OTP
-        ETH_BASE        = emulated ? NOT_USED : 0x10090000,   // SiFive-U Ethernet
-        FLASH_BASE      = 0x20000000,   // Virt / SiFive-U Flash
+        BIOS_BASE       = 0x0000000000001000,   // BIOS ROM
+        TEST_BASE       = 0x0000000000100000,   // SiFive test engine
+        RTC_BASE        = 0x0000000000101000,   // Goldfish RTC
+        UART0_BASE      = emulated ? 0x0000000010000000 : 0x0000000010010000, // NS16550A or SiFive UART
+        CLINT_BASE      = 0x0000000002000000,   // SiFive CLINT
+        TIMER_BASE      = 0x0000000002004000,   // CLINT Timer
+        PLIIC_CPU_BASE  = 0x000000000c000000,   // SiFive PLIC
+        PRCI_BASE       = emulated ? NOT_USED : 0x0000000010000000,   // SiFive-U Power, Reset, Clock, Interrupt
+        GPIO_BASE       = emulated ? NOT_USED : 0x0000000010060000,   // SiFive-U GPIO
+        OTP_BASE        = emulated ? NOT_USED : 0x0000000010070000,   // SiFive-U OTP
+        ETH_BASE        = emulated ? NOT_USED : 0x0000000010090000,   // SiFive-U Ethernet
+        FLASH_BASE      = 0x0000000020000000,   // Virt / SiFive-U Flash
 
         // Physical Memory at Boot
         BOOT            = Traits<Machine>::BOOT,
@@ -56,15 +56,17 @@ public:
 
         IO              = Traits<Machine>::IO,
 
-        SYS             = Traits<Machine>::SYS,
-        SYS_CODE        = NOT_USED,
-        SYS_INFO        = NOT_USED,
-        SYS_PT          = NOT_USED,
-        SYS_PD          = NOT_USED,
-        SYS_DATA        = NOT_USED,
-        SYS_STACK       = NOT_USED,
-        SYS_HEAP        = NOT_USED,
-        SYS_HIGH        = NOT_USED
+        // TODO MUST VERIFY.
+        SYS             = Traits<Machine>::SYS,  // 0xFFFFFF8000000000
+        SYS_CODE        = SYS + 0x0000000000000000,
+        SYS_DATA        = SYS + 0x0000000000100000,
+        SYS_INFO        = SYS_DATA,
+        SYS_PT          = SYS + 0x0000000000101000,
+        SYS_PD0         = SYS + 0x0000000000102000,
+        SYS_PD1         = SYS + 0x0000000000103000,
+        SYS_STACK       = SYS + 0x0000000000200000,
+        SYS_HEAP        = SYS + 0x0000000000400000,
+        SYS_HIGH        = 0xFFFFFFFFFFFFFFFF
     };
 };
 

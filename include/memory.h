@@ -28,7 +28,6 @@ public:
     Phy_Addr physical(Log_Addr address);
 };
 
-
 class Segment: public MMU::Chunk
 {
 private:

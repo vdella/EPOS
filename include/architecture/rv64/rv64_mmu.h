@@ -10,7 +10,7 @@
 
 __BEGIN_SYS
 
-class MMU: public No_MMU {};
+class MMU: public MMU_Common<0, 0, 0> {};
 
 __END_SYS
 
