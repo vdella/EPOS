@@ -9,7 +9,7 @@
 
 __BEGIN_SYS
 
-template<unsigned int DIRECTORY_BITS, unsigned int PAGE_BITS, unsigned int OFFSET_BITS>
+template<unsigned int DIRECTORY2_BITS, unsigned int DIRECTORY1_BITS, unsigned int PAGE_BITS, unsigned int OFFSET_BITS>
 class MMU_Common
 {
 protected:
@@ -21,6 +21,7 @@ protected:
     typedef CPU::Phy_Addr Phy_Addr;
 
     // Page constants
+    static const unsigned long DIRECTORY_BITS = DIRECTORY1_BITS;
     static const unsigned long PAGE_SHIFT = OFFSET_BITS;
     static const unsigned long PAGE_SIZE = 1 << PAGE_SHIFT;
     static const unsigned long DIRECTORY_SHIFT = OFFSET_BITS + PAGE_BITS;
@@ -86,10 +87,10 @@ public:
     constexpr static Log_Addr align_page(const Log_Addr & addr) { return (addr + sizeof(Page) - 1) & ~(sizeof(Page) - 1); }
     constexpr static Log_Addr align_directory(const Log_Addr & addr) { return (addr + PT_ENTRIES * sizeof(Page) - 1) &  ~(PT_ENTRIES * sizeof(Page) - 1); }
 
-    constexpr static Log_Addr directory_bits(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_BITS) - 1)); }
+    constexpr static Log_Addr directory_bits(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_SHIFT) - 1)); } //DIRECTORY_BITS?
 };
 
-class No_MMU: public MMU_Common<0, 0, 0>
+class No_MMU: public MMU_Common<0, 0, 0, 0>
 {
     friend class CPU;
     friend class Setup;
