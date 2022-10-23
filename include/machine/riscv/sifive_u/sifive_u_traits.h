@@ -21,7 +21,7 @@ public:
 
     // Physical Memory
     static const unsigned long RAM_BASE          = 0x0000000080000000;                           // 2 GB
-    static const unsigned long RAM_TOP           = 0x0000007fffffffff;                           // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
+    static const unsigned long RAM_TOP           = 0x0000000087ffffff;                           // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
     static const unsigned long MIO_BASE          = 0x0000000000000000;
     static const unsigned long MIO_TOP           = 0x000000001fffffff;
     //static const unsigned int PAGE_TABLES       = 0x87f00000; // MEM_TOP - 16 MB                       // 512 MB (max 512 MB of MIO => RAM + MIO < 2 G)

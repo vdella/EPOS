@@ -75,6 +75,7 @@ private:
     void init_mmu();
     void build_lm();
     void build_pmm();
+    void load_parts();
 
     void panic() { Machine::panic(); }
 
@@ -90,7 +91,9 @@ Setup::Setup()
     kout << endl;
     kerr << endl;
 
+    bi = reinterpret_cast<char *>(Memory_Map::IMAGE);
     si = reinterpret_cast<System_Info *>(&__boot_time_system_info);
+
     if (si->bm.n_cpus > Traits<Machine>::CPUS)
         si->bm.n_cpus = Traits<Machine>::CPUS;
 
@@ -102,20 +105,22 @@ Setup::Setup()
     build_pmm();
 
     // Relocate the machine to supervisor handler
-    setup_m2s();
+    //setup_m2s();
 
     // Print basic facts about this EPOS instance
     say_hi();
 
     init_mmu();
-
+    CPU::pdp(si->pmm.sys_pd);
     //EnablePaging -> activate
     //MMU::Directory::activate();
     MMU::flush_tlb();
 
-
+    load_parts();
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
     call_next();
+}
+
 
 void Setup::build_lm()
 {
@@ -305,7 +310,7 @@ void Setup::build_pmm()
     si->pmm.sys_pt = top_page * sizeof(Page);
 
     // System Page Directory 1 (1 x sizeof(Page))
-    top_page -= 2;
+    top_page -= 1; //should be 2
     si->pmm.sys_pd = top_page * sizeof(Page);
 
     // SYSTEM code segment
@@ -345,8 +350,8 @@ void Setup::build_pmm()
     top_page -= n_pd1;
     si->pmm.phy_mem_pts = top_page * sizeof(Page);
 
-    top_page -= n_pd2;
-    si->pmm.phy_mem_pts = top_page * sizeof(Page);
+    // top_page -= n_pd2;
+    // si->pmm.phy_mem_pts = top_page * sizeof(Page);
 
     // Page tables to map the IO address space
     // = NP/NPTE_PT * sizeof(Page)
@@ -466,6 +471,70 @@ void Setup::init_mmu(){
 
     db<Setup>(INF) << "SYS_PD=" << *reinterpret_cast<Page_Table *>(sys_pd) << endl;
 
+}
+
+void Setup::load_parts()
+{
+    db<Setup>(TRC) << "Setup::load_parts()" << endl;
+
+    memcpy(reinterpret_cast<void *>(Memory_Map::SYS_INFO), si, sizeof(System_Info));
+    si = reinterpret_cast<System_Info *>(Memory_Map::SYS_INFO);
+
+    // Load INIT
+    if(si->lm.has_ini) {
+        db<Setup>(TRC) << "Setup::load_init()" << endl;
+        ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
+
+        if(ini_elf->load_segment(0) < 0) {
+            db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
+            panic();
+        }
+        for(int i = 1; i < ini_elf->segments(); i++)
+            if(ini_elf->load_segment(i) < 0) {
+                db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
+                panic();
+            }
+    }
+
+    // Load SYSTEM
+    if(si->lm.has_sys) {
+        db<Setup>(TRC) << "Setup::load_os()" << endl;
+        ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+
+        if(sys_elf->load_segment(0) < 0) {
+            db<Setup>(ERR) << "OS code segment was corrupted during SETUP!" << endl;
+            panic();
+        }
+        for(int i = 1; i < sys_elf->segments(); i++) {
+            if(sys_elf->load_segment(i) < 0) {
+                db<Setup>(ERR) << "OS data segment was corrupted during SETUP!" << endl;
+                panic();
+            }
+        }
+    }
+
+    // Load APP
+    if(si->lm.has_app) {
+        db<Setup>(TRC) << "Setup::load_app()" << endl;
+        ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
+
+        if(app_elf->load_segment(0) < 0) {
+            db<Setup>(ERR) << "Application code segment was corrupted during SETUP!" << endl;
+            panic();
+        }
+        for(int i = 1; i < app_elf->segments(); i++) {
+            if(app_elf->load_segment(i) < 0) {
+                db<Setup>(ERR) << "Application data segment was corrupted during SETUP!" << endl;
+                panic();
+            }
+        }
+    }
+
+    // Load EXTRA
+    db<Setup>(TRC) << "Setup::load_extra()" << endl;
+    if(si->lm.has_ext) {
+        memcpy(reinterpret_cast<void *>(si->lm.app_extra), &bi[si->bm.extras_offset], si->lm.app_extra_size);
+    }
 }
 
 void Setup::call_next()

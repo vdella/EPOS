@@ -247,7 +247,7 @@ public:
 private:
     static void init();
 
-    static Log_Addr phy2log(const Phy_Addr & phy) { return phy; }
+    static Log_Addr phy2log(const Phy_Addr & phy) { return phy - (Memory_Map::PHY_MEM - Memory_Map::RAM_BASE); }
 
     static PD_Entry phy2pde(Phy_Addr bytes) { return ((bytes >> 12) << 10) | RV64_Flags::V; }
 
