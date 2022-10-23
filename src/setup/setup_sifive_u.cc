@@ -97,6 +97,13 @@ Setup::Setup()
     db<Setup>(TRC) << "Setup(si=" << reinterpret_cast<void *>(si) << ",sp=" << CPU::sp() << ")" << endl;
     db<Setup>(INF) << "Setup:si=" << *si << endl;
 
+    // Build the memory model
+    build_lm();
+    build_pmm();
+
+    // Relocate the machine to supervisor handler
+    setup_m2s();
+
     // Print basic facts about this EPOS instance
     say_hi();
 
@@ -109,7 +116,6 @@ Setup::Setup()
 
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
     call_next();
-}
 
 void Setup::build_lm()
 {
