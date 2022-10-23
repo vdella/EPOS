@@ -72,7 +72,7 @@ public:
     // Number of entries in Page_Table and Page_Directory
     static const unsigned int PT_ENTRIES = 1 << PAGE_BITS;
     static const unsigned int PD_ENTRIES = 1 << DIRECTORY_BITS;
-
+    
 public:
     constexpr static unsigned long pages(unsigned long bytes) { return (bytes + sizeof(Page) - 1) / sizeof(Page); }
     constexpr static unsigned long page_tables(unsigned long pages) { return sizeof(Page) > sizeof(long) ? (pages + PT_ENTRIES - 1) / PT_ENTRIES : 0; }
@@ -81,7 +81,11 @@ public:
     constexpr static unsigned long indexes(const Log_Addr & addr) { return addr & ~(sizeof(Page) - 1); }
 
     constexpr static unsigned long page(const Log_Addr & addr) { return (addr >> PAGE_SHIFT) & (PT_ENTRIES - 1); }
-    constexpr static unsigned long directory(const Log_Addr & addr) { return addr >> DIRECTORY_SHIFT; }
+
+    constexpr static unsigned long directory(const Log_Addr & addr) { return (addr >> DIRECTORY_SHIFT) & (PD_ENTRIES - 1); }
+
+    constexpr static unsigned long directory2(const Log_Addr & addr) { return (addr >> MASTER_SHIFT); }
+
     constexpr static unsigned long index(const Log_Addr & base, const Log_Addr & addr) { return (addr - base) >> PAGE_SHIFT; }
 
     constexpr static Log_Addr align_page(const Log_Addr & addr) { return (addr + sizeof(Page) - 1) & ~(sizeof(Page) - 1); }

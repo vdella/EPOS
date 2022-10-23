@@ -1,7 +1,7 @@
 // EPOS-- RISC-V 64 MMU Mediator Declarations
 
-#ifndef __riscv64_mmu_h
-#define __riscv64_mmu_h
+#ifndef __rv64_mmu_h
+#define __rv64_mmu_h
 
 #include <system/memory_map.h>
 #include <utility/string.h>
@@ -15,7 +15,7 @@ __BEGIN_SYS
 class MMU: public MMU_Common<9, 9, 9, 12>
 {
     friend class CPU;
-    friend class Setup_SifiveU;
+    friend class Setup;
 
 private:
     typedef Grouping_List<Log_Addr> List;
@@ -247,7 +247,7 @@ public:
 private:
     static void init();
 
-    static Log_Addr phy2log(const Phy_Addr & phy) { return phy ; }
+    static Log_Addr phy2log(const Phy_Addr & phy) { return phy; }
 
     static PD_Entry phy2pde(Phy_Addr bytes) { return ((bytes >> 12) << 10) | RV64_Flags::V; }
 

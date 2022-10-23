@@ -57,14 +57,14 @@ public:
         IO              = Traits<Machine>::IO,
 
         SYS             = Traits<Machine>::SYS,
-        SYS_CODE        = SYS,
-        SYS_INFO        = SYS + 1 * 1024 * 1024,
-        SYS_PT          = SYS_INFO + 4 * 1024,
-        SYS_PD1         = SYS_PT + 4 * 1024,
-        SYS_PD2         = SYS_PD1 + 4 * 1024,
-        SYS_DATA        = SYS_PD2 + 4 * 1024,
-        SYS_STACK       = SYS_INFO + 1 * 1024 * 1024,
-        SYS_HEAP        = SYS_STACK + 2 * 1024 * 1024,
+        SYS_CODE        = SYS,                        //0xffffff8000000000
+        SYS_INFO        = SYS + 1 * 1024 * 1024,      //0xffffff8000100000
+        SYS_PT          = SYS_INFO + 4 * 1024,        //0xffffff8000101000
+        SYS_PD1         = SYS_PT + 4 * 1024,          //0xffffff8000102000
+        SYS_PD2         = SYS_PD1 + 4 * 1024,         //0xffffff8000103000
+        SYS_DATA        = SYS_PD2 + 4 * 1024,         //0xffffff8000104000
+        SYS_STACK       = SYS_INFO + 1 * 1024 * 1024, //0xffffff8000200000
+        SYS_HEAP        = SYS_STACK + 2 * 1024 * 1024,//0xffffff8000400000
         SYS_HIGH        = 0xffffffffffffffff,
     };
 };
