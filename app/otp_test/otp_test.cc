@@ -6,13 +6,13 @@ using namespace EPOS;
 OStream cout;
 SiFive_OTP otp;
 
-const unsigned int BUF_SIZE = 16;  // As a multiple of 4.
+const unsigned int BUF_SIZE = 16;
 const unsigned int offset = 0x00;
 
 int main()
 {
     unsigned int write_buffer[BUF_SIZE];
-    unsigned int read_buffer[BUF_SIZE]; // 4 bytes buffer * buf_size
+    unsigned int read_buffer[BUF_SIZE];
 
     for(unsigned int i = 0; i < BUF_SIZE; i++)
     {
@@ -20,7 +20,7 @@ int main()
         read_buffer[i] = 10;
     }
 
-    unsigned int b = (unsigned int) otp.write_shot(offset, &write_buffer, BUF_SIZE);
+    unsigned int b = (unsigned int) otp.write_shot(offset, write_buffer, BUF_SIZE);
 
     cout << "write size = " << b << endl;
 
@@ -29,7 +29,7 @@ int main()
         cout << hex << "> buf=" << write_buffer[i] << endl;
     }
 
-    unsigned int c = (unsigned int) otp.read_shot(offset, &read_buffer, BUF_SIZE);
+    unsigned int c = (unsigned int) otp.read_shot(offset, read_buffer, BUF_SIZE);
 
     cout << "read size = " << c << endl;
 

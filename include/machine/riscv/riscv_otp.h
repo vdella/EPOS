@@ -63,6 +63,7 @@ public:
     static const unsigned int TMS_DELAY = Traits<OTP>::TMS_DELAY;
 
     // OTP registers offsets from OTP_BASE
+    //static unsigned long BASE = Memory_Map::OTP_BASE;
     enum
     {
         PA      = 0x00,  // Address input
@@ -85,7 +86,7 @@ public:
 public:
     SiFive_OTP() {}
 
-    int read_shot(int offset, void *buf, int size)
+    int read_shot(int offset, unsigned int buf[], int size)
     {
         // Check if offset and size are multiple of BYTES_PER_FUSE.
         if ((size % BYTES_PER_FUSE) || (offset % BYTES_PER_FUSE))
@@ -107,8 +108,6 @@ public:
             return EINVAL + 2;
         if ((fuse_id + fuse_count) > TOTAL_FUSES)
             return EINVAL + 3;
-
-        // int fuse_buf[fuse_count];
 
         db<OTP>(WRN) << "Gathering registers!" << endl;
 
@@ -152,19 +151,10 @@ public:
         writel(PTRIM_DISABLE_INPUT, SiFive_OTP::PTRIM);
         writel(PDSTB_DEEP_STANDBY_DISABLE, SiFive_OTP::PDSTB);
 
-        // Copy out.
-        memcpy(buf, fuse_buf, size);
-
         return size;
     }
 
-    /*
-     * Caution:
-     * OTP can be written only once, so use carefully.
-     *
-     * offset and size are assumed aligned to the size of the fuses (32-bit).
-     */
-    int write_shot(int offset, const void *buf, int size)
+    int write_shot(int offset, unsigned int buf[], int size)
     {
         db<OTP>(WRN) << "Offset = " << offset << endl;
         db<OTP>(WRN) << "size = " << size << endl;
@@ -178,7 +168,7 @@ public:
         unsigned int fuse_id = offset;
         unsigned int fuse_count = size;
 
-        Reg32 *write_buf = (Reg32 *)buf;
+        //Reg32 *write_buf = (Reg32 *)buf;
         int pas, bit;
 
         // Check bounds.
@@ -210,7 +200,8 @@ public:
         for (unsigned int i = 0; i < fuse_count; i++, fuse_id++)
         {
             writel(fuse_id, SiFive_OTP::PA);
-            Reg32 write_data = *(write_buf++);
+            //Reg32 write_data = *(write_buf++);
+            Reg32 write_data = buf[i];
 
             for (pas = 0; pas < 2; pas++)
             {
@@ -245,7 +236,7 @@ public:
         writel(PTM_RESET_VAL, SiFive_OTP::PTM);
         writel(PTRIM_DISABLE_INPUT, SiFive_OTP::PTRIM);
         writel(PDSTB_DEEP_STANDBY_DISABLE, SiFive_OTP::PDSTB);
-        
+
         return size;
     }
 
@@ -261,7 +252,7 @@ private:
         __arch_putl(val, addr);
     }
 
-    static unsigned int readl(const unsigned int addr)
+    static unsigned int readl(unsigned int addr)
     {
         unsigned int val = __arch_getl(addr);
         rmb();
