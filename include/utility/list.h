@@ -620,7 +620,6 @@ public:
         }
         return e;
     }
-
 private:
     Element * search_left(const Object_Type * obj) {
         Element * e = head();

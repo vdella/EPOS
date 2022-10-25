@@ -1,7 +1,7 @@
 // EPOS-- RISC-V 64 MMU Mediator Declarations
 
-#ifndef __riscv64_mmu_h
-#define __riscv64_mmu_h
+#ifndef __rv64_mmu_h
+#define __rv64_mmu_h
 
 #include <system/memory_map.h>
 #include <utility/string.h>
@@ -12,7 +12,7 @@
 
 __BEGIN_SYS
 
-class MMU: public MMU_Common<9, 9, 9, 12>
+class MMU: public MMU_Common<18, 9, 12>
 {
     friend class CPU;
     friend class Setup_SifiveU;
@@ -99,6 +99,8 @@ public:
         Chunk() {}
 
         // from 0 to bytes % PAGE_SIZE
+        //pts = number of page_tables
+        //pages = number of pages
         Chunk(unsigned int bytes, Flags flags)
         : _from(0), _to(pages(bytes)), _pts(page_tables(_to - _from)), _bytes(bytes), _flags(RV64_Flags(flags)), _pt(calloc(_pts)) {
             _pt->map(_flags, _from, _to);
@@ -142,48 +144,53 @@ public:
 
         void activate() const {CPU::pdp(reinterpret_cast<CPU::Reg64>(_pd));}
 
-        Log_Addr attach(const Chunk & chunk, unsigned int from = 0) {
-          for(unsigned int i = from; i < PD_ENTRIES; i++)
-              if(attach(i, chunk.pt(), chunk.pts()))
-                for (unsigned int j = 0; j < PD_ENTRIES; j++) {
-                  Page_Table * chunk_pt = chunk.pt();
-                  Page_Table * pt = reinterpret_cast<Page_Table *>((void *)(*chunk_pt)[i]);
-                  if (attach(j, pt, chunk.pts()))
-                    return i << MASTER_SHIFT | j << DIRECTORY_SHIFT;
-                }
+      //Coloca a PT do Chunk na PD do Address Space e retorna o endereço base da PD
+      Log_Addr attach(const Chunk & chunk, unsigned int from = 0) {
+          for(unsigned int i = from; i < PD_ENTRIES - chunk.pts(); i++)
+              if(attach(i, chunk.pt(), chunk.pts(), RV64_Flags::V))
+                  return i << DIRECTORY_SHIFT | j << DIRECTORY_SHIFT + 9;
           return false;
       }
 
+      // Used to create non-relocatable segments such as code
       Log_Addr attach(const Chunk & chunk, const Log_Addr & addr) {
           unsigned int from = directory(addr);
-          if(!attach(from, chunk.pt(), chunk.pts()))
+          if(!attach(from, chunk.pt(), chunk.pts(), RV64_Flags::V))
               return Log_Addr(false);
-          return (from << DIRECTORY_SHIFT);
+          return from << DIRECTORY_SHIFT;
       }
 
-      void detach(const Chunk & chunk) {}
+      void detach(const Chunk & chunk) {
+          for(unsigned int i = 0; i < PD_ENTRIES; i++) {
+              if(indexes((*_pd)[i]) == indexes(phy2pde(chunk.pt()))) {
+                  detach(i, chunk.pt(), chunk.pts());
+                  return;
+              }
+          }
+          db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ") failed!" << endl;
+      }
 
       void detach(const Chunk & chunk, Log_Addr addr) {
-        unsigned int from = directory(addr);
-        for (unsigned int i = from; i < PD_ENTRIES; i++) {
-          for (unsigned int j = from; j < PD_ENTRIES; j++) {
-            Page_Table * chunk_pt = chunk.pt();
-            Page_Table * pt = reinterpret_cast<Page_Table *>((void *)(*chunk_pt)[i]);
-            detach(from, pt, chunk.pts());
+          unsigned int from = directory(addr);
+          if(indexes((*_pd)[from]) != indexes(chunk.pt())) {
+              db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ",addr=" << addr << ") failed!" << endl;
+              return;
           }
-        }
-        detach(from, chunk.pt(), chunk.pts());
+          detach(from, chunk.pt(), chunk.pts());
       }
+
 
         Phy_Addr physical(Log_Addr addr) { return addr; }
 
     private:
-        bool attach(unsigned int from, const Page_Table * pt, unsigned int n) { //Flag
+        //if(attach(i, chunk.pt(), chunk.pts(), RV64_Flags::V))
+        //Itera Page Directory até encontrar um espaço e atribui a page table a ele.
+        bool attach(unsigned int from, const Page_Table * pt, unsigned int n, RV64_Flags flags) {
             for(unsigned int i = from; i < from + n; i++)
-                if(phy2log(_pd)[i])
+                if((*static_cast<Page_Directory *>(phy2log(_pd)))[i]) // it has already been used
                     return false;
             for(unsigned int i = from; i < from + n; i++, pt++)
-                ((phy2log(_pd)))[i] = phy2pde(Phy_Addr(pt));
+                (*static_cast<Page_Directory *>(phy2log(_pd)))[i] = ((Phy_Addr(pt) >> 12) << 10) | flags; // is pt the correct value?
             return true;
         }
 
@@ -260,11 +267,8 @@ private:
 
 private:
     static List _free;
-    static Page_Directory * _middle;
     static Page_Directory * _master;
-    static const unsigned long RAM_BASE = Memory_Map::RAM_BASE;
 };
-
 __END_SYS
 
 #endif

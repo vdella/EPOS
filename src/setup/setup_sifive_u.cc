@@ -2,35 +2,20 @@
 
 #include <architecture.h>
 #include <machine.h>
-#include <rv64_mmu.h>
 #include <utility/elf.h>
 #include <utility/string.h>
 
-extern "C"
-{
+extern "C" {
     void _start();
 
     void _int_entry();
 
     // SETUP entry point is in .init (and not in .text), so it will be linked first and will be the first function after the ELF header in the image
-    void _entry() __attribute__((used, naked, section(".init")));
+    void _entry() __attribute__ ((used, naked, section(".init")));
     void _setup();
 
     // LD eliminates this variable while performing garbage collection, that's why the used attribute.
-    char __boot_time_system_info[sizeof(EPOS::S::System_Info)] __attribute__((used)) = "<System_Info placeholder>"; // actual System_Info will be added by mkbi!
-}
-
-extern "C" [[gnu::interrupt, gnu::aligned(8)]] void _mmode_forward()
-{
-    Reg id = CPU::mcause();
-    if ((id & IC::INT_MASK) == CLINT::IRQ_MAC_TIMER)
-    {
-        Timer::reset();
-        CPU::sie(CPU::STI);
-    }
-    Reg interrupt_id = 1 << ((id & IC::INT_MASK) - 2);
-    if (CPU::int_enabled() && (CPU::sie() & (interrupt_id)))
-        CPU::mip(interrupt_id);
+    char __boot_time_system_info[sizeof(EPOS::S::System_Info)] __attribute__ ((used)) = "<System_Info placeholder>"; // actual System_Info will be added by mkbi!
 }
 
 __BEGIN_SYS
@@ -41,14 +26,14 @@ class Setup
 {
 private:
     // Physical memory map
-    static const unsigned long RAM_BASE = Memory_Map::RAM_BASE;
-    static const unsigned long RAM_TOP = Memory_Map::RAM_TOP;
-    static const unsigned long MIO_BASE = Memory_Map::MIO_BASE;
-    static const unsigned long MIO_TOP = Memory_Map::MIO_TOP;
-    static const unsigned long FREE_BASE = Memory_Map::FREE_BASE;
-    static const unsigned long FREE_TOP = Memory_Map::FREE_TOP;
-    static const unsigned long SETUP = Memory_Map::SETUP;
-    static const unsigned long BOOT_STACK = Memory_Map::BOOT_STACK;
+    static const unsigned long RAM_BASE         = Memory_Map::RAM_BASE;
+    static const unsigned long RAM_TOP          = Memory_Map::RAM_TOP;
+    static const unsigned long MIO_BASE         = Memory_Map::MIO_BASE;
+    static const unsigned long MIO_TOP          = Memory_Map::MIO_TOP;
+    static const unsigned long FREE_BASE        = Memory_Map::FREE_BASE;
+    static const unsigned long FREE_TOP         = Memory_Map::FREE_TOP;
+    static const unsigned long SETUP            = Memory_Map::SETUP;
+    static const unsigned long BOOT_STACK       = Memory_Map::BOOT_STACK;
 
     // Architecture Imports
     typedef CPU::Reg Reg;
@@ -61,21 +46,20 @@ public:
 private:
     void say_hi();
     void call_next();
-    void init_mmu();
 
 private:
-    System_Info *si;
+    System_Info * si;
 };
+
 
 Setup::Setup()
 {
-    CPU::int_disable();
     Display::init();
     kout << endl;
     kerr << endl;
 
     si = reinterpret_cast<System_Info *>(&__boot_time_system_info);
-    if (si->bm.n_cpus > Traits<Machine>::CPUS)
+    if(si->bm.n_cpus > Traits<Machine>::CPUS)
         si->bm.n_cpus = Traits<Machine>::CPUS;
 
     db<Setup>(TRC) << "Setup(si=" << reinterpret_cast<void *>(si) << ",sp=" << CPU::sp() << ")" << endl;
@@ -84,58 +68,43 @@ Setup::Setup()
     // Print basic facts about this EPOS instance
     say_hi();
 
-    init_mmu();
-
-    //EnablePaging -> activate
-    Directory::activate();
-    MMU::flush_tlb();
-
-
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
     call_next();
 }
+
 
 void Setup::say_hi()
 {
     db<Setup>(TRC) << "Setup::say_hi()" << endl;
     db<Setup>(INF) << "System_Info=" << *si << endl;
 
-    if (si->bm.application_offset == -1U)
+    if(si->bm.application_offset == -1U)
         db<Setup>(ERR) << "No APPLICATION in boot image, you don't need EPOS!" << endl;
 
-    kout << "This is EPOS!\n"
-         << endl;
+    kout << "This is EPOS!\n" << endl;
     kout << "Setting up this machine as follows: " << endl;
-    kout << "  Mode:         " << ((Traits<Build>::MODE == Traits<Build>::LIBRARY) ? "library" : (Traits<Build>::MODE == Traits<Build>::BUILTIN) ? "built-in"
-                                                                                                                                                 : "kernel")
-         << endl;
+    kout << "  Mode:         " << ((Traits<Build>::MODE == Traits<Build>::LIBRARY) ? "library" : (Traits<Build>::MODE == Traits<Build>::BUILTIN) ? "built-in" : "kernel") << endl;
     kout << "  Processor:    " << Traits<Machine>::CPUS << " x RV" << Traits<CPU>::WORD_SIZE << " at " << Traits<CPU>::CLOCK / 1000000 << " MHz (BUS clock = " << Traits<CPU>::CLOCK / 1000000 << " MHz)" << endl;
     kout << "  Machine:      SiFive-U" << endl;
     kout << "  Memory:       " << (RAM_TOP + 1 - RAM_BASE) / 1024 << " KB [" << reinterpret_cast<void *>(RAM_BASE) << ":" << reinterpret_cast<void *>(RAM_TOP) << "]" << endl;
     kout << "  User memory:  " << (FREE_TOP - FREE_BASE) / 1024 << " KB [" << reinterpret_cast<void *>(FREE_BASE) << ":" << reinterpret_cast<void *>(FREE_TOP) << "]" << endl;
     kout << "  I/O space:    " << (MIO_TOP + 1 - MIO_BASE) / 1024 << " KB [" << reinterpret_cast<void *>(MIO_BASE) << ":" << reinterpret_cast<void *>(MIO_TOP) << "]" << endl;
     kout << "  Node Id:      ";
-    if (si->bm.node_id != -1)
+    if(si->bm.node_id != -1)
         kout << si->bm.node_id << " (" << Traits<Build>::NODES << ")" << endl;
     else
         kout << "will get from the network!" << endl;
     kout << "  Position:     ";
-    if (si->bm.space_x != -1)
+    if(si->bm.space_x != -1)
         kout << "(" << si->bm.space_x << "," << si->bm.space_y << "," << si->bm.space_z << ")" << endl;
     else
         kout << "will get from the network!" << endl;
-    if (si->bm.extras_offset != -1UL)
+    if(si->bm.extras_offset != -1UL)
         kout << "  Extras:       " << si->lm.app_extra_size << " bytes" << endl;
 
     kout << endl;
 }
 
-void Setup::init_mmu(){
-
-    //Configurar PT
-    //COnfigurar PD
-
-}
 
 void Setup::call_next()
 {
@@ -143,7 +112,6 @@ void Setup::call_next()
 
     // Call the next stage
     static_cast<void (*)()>(_start)();
-    //CPU::sepc_write(CPU::Reg(&_start));
 
     // SETUP is now part of the free memory and this point should never be reached, but, just in case ... :-)
     db<Setup>(ERR) << "OS failed to init!" << endl;
@@ -155,38 +123,27 @@ using namespace EPOS::S;
 
 void _entry() // machine mode
 {
-    // Desabilita as interrupções
-    CPU::mstatusc(CPU::MIE);
-    // Escreve o mode e o MIE antigo
-    CPU::mstatus(CPU::MPP_S | CPU::MPIE);
-    // set the stack pointer, thus creating a stack for SETUP
-    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long));
+    if(CPU::mhartid() != 0)                             // SiFive-U requires 2 cores, so we disable core 1 here
+        CPU::halt();
 
-    // Salva o hartid para poder usar em s-mode
-    Reg core = CPU::mhartid();
-    CPU::tp(core);
+    CPU::mstatusc(CPU::MIE);                            // disable interrupts (they will be reenabled at Init_End)
+    CPU::mies(CPU::MSI);                                // enable interrupts generation by CLINT
+    CLINT::mtvec(CLINT::DIRECT, _int_entry);            // setup a preliminary machine mode interrupt handler pointing it to _int_entry
 
-    // Guarantee that paging is off before going to S-mode.
-    CPU::satp(0);
+    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP
 
-    // Delegar as instrucoes e as excecoes
-    CPU::mideleg_write(CPU::SSI | CPU::STI | CPU::SEI);
-    CPU::medeleg_write(0xffff);
+    Machine::clear_bss();
 
-    // Escreve as interrupcoes que vao para s-mode e o handler
-    CPU::mies(CPU::MSI | CPU::MTI | CPU::MEI);
-    CLINT::mtvec(CLINT::DIRECT, CPU::Reg(&_mmode_forward));
+    CPU::mstatus(CPU::MPP_M);                           // stay in machine mode at mret
 
-    // Coloca o _setup no pc e entra no modo supervisor
-    CPU::mepc((CPU::Reg)&_setup);
-    CPU::mret();
+    CPU::mepc(CPU::Reg(&_setup));                       // entry = _setup
+    CPU::mret();                                        // enter supervisor mode at setup (mepc) with interrupts enabled (mstatus.mpie = true)
 }
 
 void _setup() // supervisor mode
 {
-    CPU::sie(CPU::SSI | CPU::STI | CPU::SEI);
-    CPU::sstatus(CPU::SPP_S);
-    CLINT::stvec(CLINT::DIRECT, CPU::Reg(&_int_entry));
+    kerr  << endl;
+    kout  << endl;
 
     Setup setup;
 }
