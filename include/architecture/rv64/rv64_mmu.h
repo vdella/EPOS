@@ -19,6 +19,8 @@ class MMU: public MMU_Common<18, 9, 12>
 
 private:
     typedef Grouping_List<Log_Addr> List;
+    typedef Memory_Map::RAM_TOP RAM_TOP;
+    typedef Memory_Map::PHY_MEM PHY_MEM;
 
     static const unsigned long PHY_MEM = Memory_Map::PHY_MEM;
 
@@ -133,7 +135,7 @@ public:
     class Directory
     {
     public:
-        Directory() : _pd(calloc(1)) {
+        Directory() : _pd(calloc(512)) {
             for(unsigned int i = 0; i < PD_ENTRIES; i++){
                 (*_pd)[i] = (*_master)[i];
             }
@@ -148,7 +150,7 @@ public:
       Log_Addr attach(const Chunk & chunk, unsigned int from = 0) {
           for(unsigned int i = from; i < PD_ENTRIES - chunk.pts(); i++)
               if(attach(i, chunk.pt(), chunk.pts(), RV64_Flags::V))
-                  return i << DIRECTORY_SHIFT | j << DIRECTORY_SHIFT + 9;
+                  return (i/PT_ENTRIES) << DIRECTORY_SHIFT + 9 | (i%PT_ENTRIES) << DIRECTORY_SHIFT;
           return false;
       }
 
@@ -157,7 +159,7 @@ public:
           unsigned int from = directory(addr);
           if(!attach(from, chunk.pt(), chunk.pts(), RV64_Flags::V))
               return Log_Addr(false);
-          return from << DIRECTORY_SHIFT;
+          return (from/PT_ENTRIES) << DIRECTORY_SHIFT + 9 | (from%PT_ENTRIES) << DIRECTORY_SHIFT;
       }
 
       void detach(const Chunk & chunk) {
@@ -254,7 +256,7 @@ public:
 private:
     static void init();
 
-    static Log_Addr phy2log(const Phy_Addr & phy) { return phy ; }
+    static Log_Addr phy2log(const Phy_Addr & phy) { return phy + (PHY_MEM - RAM_BASE); }
 
     static PD_Entry phy2pde(Phy_Addr bytes) { return ((bytes >> 12) << 10) | RV64_Flags::V; }
 
