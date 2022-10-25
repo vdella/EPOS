@@ -19,10 +19,10 @@ class MMU: public MMU_Common<18, 9, 12>
 
 private:
     typedef Grouping_List<Log_Addr> List;
-    typedef Memory_Map::RAM_TOP RAM_TOP;
-    typedef Memory_Map::PHY_MEM PHY_MEM;
 
-    static const unsigned long PHY_MEM = Memory_Map::PHY_MEM;
+
+    static const unsigned long PHY_MEM  = Memory_Map::PHY_MEM;
+    static const unsigned long RAM_BASE = Memory_Map::RAM_BASE;
 
 public:
     // Page Flags
@@ -146,20 +146,22 @@ public:
 
         void activate() const {CPU::pdp(reinterpret_cast<CPU::Reg64>(_pd));}
 
-      //Coloca a PT do Chunk na PD do Address Space e retorna o endereço base da PD
+
+      //Attach Chunk's PT into the Address Space and return the Page Directory base address.
       Log_Addr attach(const Chunk & chunk, unsigned int from = 0) {
           for(unsigned int i = from; i < PD_ENTRIES - chunk.pts(); i++)
               if(attach(i, chunk.pt(), chunk.pts(), RV64_Flags::V))
-                  return (i/PT_ENTRIES) << DIRECTORY_SHIFT + 9 | (i%PT_ENTRIES) << DIRECTORY_SHIFT;
+                  return (i/PT_ENTRIES) << (DIRECTORY_SHIFT + 9) | (i%PT_ENTRIES) << DIRECTORY_SHIFT;
           return false;
       }
+
 
       // Used to create non-relocatable segments such as code
       Log_Addr attach(const Chunk & chunk, const Log_Addr & addr) {
           unsigned int from = directory(addr);
           if(!attach(from, chunk.pt(), chunk.pts(), RV64_Flags::V))
               return Log_Addr(false);
-          return (from/PT_ENTRIES) << DIRECTORY_SHIFT + 9 | (from%PT_ENTRIES) << DIRECTORY_SHIFT;
+          return (from/PT_ENTRIES) << (DIRECTORY_SHIFT + 9) | (from%PT_ENTRIES) << DIRECTORY_SHIFT;
       }
 
       void detach(const Chunk & chunk) {
@@ -185,14 +187,13 @@ public:
         Phy_Addr physical(Log_Addr addr) { return addr; }
 
     private:
-        //if(attach(i, chunk.pt(), chunk.pts(), RV64_Flags::V))
-        //Itera Page Directory até encontrar um espaço e atribui a page table a ele.
+
         bool attach(unsigned int from, const Page_Table * pt, unsigned int n, RV64_Flags flags) {
             for(unsigned int i = from; i < from + n; i++)
-                if((*static_cast<Page_Directory *>(phy2log(_pd)))[i]) // it has already been used
+                if((*_pd)[i])
                     return false;
             for(unsigned int i = from; i < from + n; i++, pt++)
-                (*static_cast<Page_Directory *>(phy2log(_pd)))[i] = ((Phy_Addr(pt) >> 12) << 10) | flags; // is pt the correct value?
+                (*_pd)[i] = phy2pde(Phy_Addr(pt));
             return true;
         }
 
@@ -243,12 +244,23 @@ public:
 
     static unsigned int allocable() { return _free.head() ? _free.head()->size() : 0; }
 
+    //return _master;
     static Page_Directory *volatile current()
     {
         return static_cast<Page_Directory *volatile>(phy2log(CPU::pdp()));
     }
 
-    static Phy_Addr physical(Log_Addr addr) { return addr; }
+    static Phy_Addr physical(Log_Addr addr) {
+      Page_Directory * pd = current();
+      Page_Table * pt = (*pd)[directory(addr)];
+      return (*pt)[page(addr)] | offset(addr);
+    }
+
+    //Is this being called?
+    static unsigned long directory(const Log_Addr & addr) {
+      //VPN2 * 512 + VPN1 - Macro for 511 (first 9 bits)
+      return PT_ENTRIES * (addr >> (DIRECTORY_SHIFT + 9)) + ((addr >> DIRECTORY_SHIFT) & 0x1FF);
+    }
 
     static void flush_tlb() { CPU::flush_tlb(); }
     static void flush_tlb(Log_Addr addr) { CPU::flush_tlb(addr); }

@@ -25,6 +25,7 @@ protected:
     static const unsigned long PAGE_SIZE = 1 << PAGE_SHIFT;
     static const unsigned long DIRECTORY_SHIFT = OFFSET_BITS + PAGE_BITS;
 
+
 public:
     // Memory page
     typedef unsigned char Page[PAGE_SIZE];
