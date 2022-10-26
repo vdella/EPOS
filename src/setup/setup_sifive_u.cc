@@ -56,6 +56,9 @@ private:
     typedef CPU::Reg Reg;
     typedef CPU::Phy_Addr Phy_Addr;
     typedef CPU::Log_Addr Log_Addr;
+    typedef MMU::Page_Directory Page_Directory;
+    typedef MMU::Page_Table Page_Table;
+    typedef MMU::RV64_Flags RV64Flags;
 
 public:
     Setup();
@@ -63,6 +66,7 @@ public:
 private:
     void say_hi();
     void call_next();
+    void init_mmu();
 
 private:
     System_Info *si;
@@ -83,6 +87,8 @@ Setup::Setup()
 
     // Print basic facts about this EPOS instance
     say_hi();
+
+    init_mmu();
 
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
     call_next();
@@ -120,6 +126,26 @@ void Setup::say_hi()
     if (si->bm.extras_offset != -1UL)
         kout << "  Extras:       " << si->lm.app_extra_size << " bytes" << endl;
 
+    kout << endl;
+}
+
+void Setup::init_mmu(){
+    kout << "Initializing MMU..." << endl;
+    kout << endl;
+
+    Page_Directory* _master = MMU::current();
+    _master = new ((void *)(Memory_Map::PAGE_TABLES)) Page_Directory();
+
+    //Total de entradas de pd2 + pd1
+    unsigned pd_entradas = 512 * 512 + 512 + MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
+
+    _master->remap(Memory_Map::PAGE_TABLES, 0, pd_entradas, RV64Flags::V);
+
+    for(){
+
+    }
+    
+    kout << "Chegamos no final" << endl;
     kout << endl;
 }
 

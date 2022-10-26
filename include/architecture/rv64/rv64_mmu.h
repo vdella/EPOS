@@ -247,7 +247,7 @@ public:
     //return _master;
     static Page_Directory *volatile current()
     {
-        return static_cast<Page_Directory *volatile>(phy2log(CPU::pdp()));
+        return _master;
     }
 
     static Phy_Addr physical(Log_Addr addr) {
