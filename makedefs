@@ -100,8 +100,8 @@ UUID		= $(shell cat /proc/sys/kernel/random/uuid | sed 's/-//g')
 ia32_COMP_PREFIX	:= /usr/bin/x86_64-linux-gnu-
 armv7_COMP_PREFIX	:= /usr/bin/arm-none-eabi-
 armv8_COMP_PREFIX	:= /usr/bin/aarch64-linux-gnu-
-rv32_COMP_PREFIX	:= /home/haku/Documents/SO2/rv32/bin/riscv32-unknown-linux-gnu-
-rv64_COMP_PREFIX	:= /home/haku/Documents/SO2/rv64/bin/riscv64-unknown-linux-gnu-
+rv32_COMP_PREFIX	:= /home/davi/Documents/so2/EPOS/rv32/bin/riscv32-unknown-linux-gnu-
+rv64_COMP_PREFIX	:= /home/davi/Documents/so2/EPOS/riscv/bin/riscv64-unknown-linux-gnu-
 COMP_PREFIX		= $($(ARCH)_COMP_PREFIX)
 
 # Architecture specifics
@@ -243,7 +243,7 @@ MACH_LD_FLAGS		:= $($(MACH)_LD_FLAGS)
 MACH_CODE_NAME		:= $($(MACH)_CODE_NAME)
 MACH_DATA_NAME		:= $($(MACH)_DATA_NAME)
 MACH_EMULATOR		= $($(MACH)_EMULATOR)
-MACH_DEBUGGER		:= $(TERM) $($(MACH)_DEBUGGER) -ex "target remote:1235" -ex "set confirm off"
+MACH_DEBUGGER		:= $(TERM) $($(MACH)_DEBUGGER) -ex "target extended-remote:1235" -ex "set confirm off"
 MACH_FLASHER		= $($(MACH)_FLASHER)
 MACH_MAGIC		:= $($(MACH)_MAGIC)
 MACH_IMGSUFF		:= $($(MACH)_IMG_SUFFIX)
