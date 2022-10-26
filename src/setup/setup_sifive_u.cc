@@ -151,8 +151,6 @@ void Setup::init_mmu()
     }
 
     MMU::flush_tlb();
-    kout << "Chegamos no final" << endl;
-    kout << endl;
 }
 
 void Setup::call_next()
@@ -161,11 +159,8 @@ void Setup::call_next()
 
     // Call the next stage
     CPU::satp((1UL << 63) | (Memory_Map::PAGE_TABLES >> 12));
-    kout << "Passou SATP" << endl;
     CPU::sstatus(CPU::SPP_S);
-    kout << "Passou SSTATUS" << endl;
     CPU::sepc(CPU::Reg(&_start));
-    kout << "Passou SEPC" << endl;
     CPU::sret();
 
     // SETUP is now part of the free memory and this point should never be reached, but, just in case ... :-)
