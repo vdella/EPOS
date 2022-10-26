@@ -178,6 +178,9 @@ using namespace EPOS::S;
 
 void _entry() // machine mode
 {
+    // Desabilita as interrupções
+    CPU::mies(CPU::MSI | CPU::MTI | CPU::MEI);
+    CPU::int_disable();
 
     if (CPU::mhartid() == 0) // SiFive-U requires 2 cores, so we disable core 1 here
         CPU::halt();
@@ -185,9 +188,6 @@ void _entry() // machine mode
     // Guarantee that paging is off before going to S-mode.
     CPU::satp(0);
     Machine::clear_bss();
-
-    // Desabilita as interrupções
-    CPU::mstatusc(CPU::MIE);
 
     // Rever
     CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long));
@@ -204,7 +204,6 @@ void _entry() // machine mode
     CPU::medeleg(0xffff);
 
     // Escreve as interrupcoes que vao para s-mode e o handler
-    CPU::mies(CPU::MSI | CPU::MTI | CPU::MEI);
     CLINT::mtvec(CLINT::DIRECT, CPU::Reg(&_mmode_forward));
 
     // Coloca o _setup no pc e entra no modo supervisor
