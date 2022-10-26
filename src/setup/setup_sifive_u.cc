@@ -129,22 +129,27 @@ void Setup::say_hi()
     kout << endl;
 }
 
-void Setup::init_mmu(){
+void Setup::init_mmu()
+{
     kout << "Initializing MMU..." << endl;
     kout << endl;
 
-    Page_Directory* _master = MMU::current();
+    Page_Directory *_master = MMU::current();
     _master = new ((void *)(Memory_Map::PAGE_TABLES)) Page_Directory();
 
-    //Total de entradas de pd2 + pd1
-    unsigned pd_entradas = 512 * 512 + 512 + MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
+    // Total de entradas de pd2 + pd1
+    unsigned pd_entradas = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
 
-    _master->remap(Memory_Map::PAGE_TABLES, 0, pd_entradas, RV64Flags::V);
+    _master->remap(Memory_Map::PAGE_TABLES, RV64Flags::V, 0, pd_entradas);
 
-    for(){
-
+    for (unsigned i = 0; i < pd_entradas; i++)
+    {
+        Page_Table *pt = new ((void *)(Memory_Map::PAGE_TABLES + 4096 * (i + 1))) Page_Table();
+        // 512 * 4096 = PD1 && i * PD1 = PD2 == total ram
+        // De pd2 em pd2 para mapear pd1
+        pt->remap(i * 512 * 4096, RV64Flags::SYS);
     }
-    
+
     kout << "Chegamos no final" << endl;
     kout << endl;
 }
@@ -154,7 +159,14 @@ void Setup::call_next()
     db<Setup>(INF) << "SETUP ends here!" << endl;
 
     // Call the next stage
+    CPU::satp((1UL << 63) | (Memory_Map::PAGE_TABLES >> 12));
+    MMU::flush_tlb();
+
+    kout << "Passou SATP" << endl;
+    CPU::sstatus(CPU::SPP_S);
+    kout << "Passou SSTATUS" << endl;
     CPU::sepc(CPU::Reg(&_start));
+    kout << "Passou SEPC" << endl;
     CPU::sret();
 
     // SETUP is now part of the free memory and this point should never be reached, but, just in case ... :-)

@@ -85,7 +85,7 @@ public:
                 }
             }
         }
-        void remap(Phy_Addr addr, int from, int to, RV64_Flags flags) {
+        void remap(Phy_Addr addr, RV64_Flags flags, int from = 0, int to = 512) {
             addr = align_page(addr);
             for( ; from < to; from++) {
                 ptes[from] = phy2pte(addr, flags);
@@ -147,7 +147,8 @@ public:
         void activate() const {CPU::pdp(reinterpret_cast<CPU::Reg64>(_pd));}
 
 
-      //Attach Chunk's PT into the Address Space and return the Page Directory base address.
+      // Attach Chunk's PT into the Address Space and return the Page Directory base address.
+      // i/PT_ENTRIES = lv2 e i%PT_ENTRIES = lv1
       Log_Addr attach(const Chunk & chunk, unsigned int from = 0) {
           for(unsigned int i = from; i < PD_ENTRIES - chunk.pts(); i++)
               if(attach(i, chunk.pt(), chunk.pts(), RV64_Flags::V))
@@ -259,6 +260,8 @@ public:
     //Is this being called?
     static unsigned long directory(const Log_Addr & addr) {
       //VPN2 * 512 + VPN1 - Macro for 511 (first 9 bits)
+      // 1FF limpa os bits 30-39
+      // + 9 para ficar com apenas valores de paginas lv2 e lv1
       return PT_ENTRIES * (addr >> (DIRECTORY_SHIFT + 9)) + ((addr >> DIRECTORY_SHIFT) & 0x1FF);
     }
 
