@@ -150,6 +150,7 @@ void Setup::init_mmu()
         pt->remap(i * 512 * 4096, RV64Flags::SYS);
     }
 
+    MMU::flush_tlb();
     kout << "Chegamos no final" << endl;
     kout << endl;
 }
@@ -160,8 +161,6 @@ void Setup::call_next()
 
     // Call the next stage
     CPU::satp((1UL << 63) | (Memory_Map::PAGE_TABLES >> 12));
-    MMU::flush_tlb();
-
     kout << "Passou SATP" << endl;
     CPU::sstatus(CPU::SPP_S);
     kout << "Passou SSTATUS" << endl;
@@ -189,8 +188,6 @@ void _entry() // machine mode
 
     // Desabilita as interrupções
     CPU::mstatusc(CPU::MIE);
-    // Escreve o mode e o MIE antigo
-    // set the stack pointer, thus creating a stack for SETUP
 
     // Rever
     CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long));
