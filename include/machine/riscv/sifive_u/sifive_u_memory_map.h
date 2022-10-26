@@ -22,6 +22,7 @@ public:
         MIO_BASE        = Traits<Machine>::MIO_BASE,
         MIO_TOP         = Traits<Machine>::MIO_TOP,
         BOOT_STACK      = RAM_TOP + 1 - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
+        PAGE_TABLES     = BOOT_STACK - ((1 + 512 + 512*512) * 4 * 1024),
         FREE_BASE       = RAM_BASE,
         FREE_TOP        = BOOT_STACK,
 

@@ -17,13 +17,13 @@ protected:
 template<> struct Traits<Machine>: public Traits<Machine_Common>
 {
 public:
-    static const unsigned int NOT_USED          = 0xffffffff;
+    static const unsigned long NOT_USED          = 0xffffffffffffffff;
 
-    // Physical Memory
-    static const unsigned int RAM_BASE          = 0x0000000080000000;                           // 2 GB
-    static const unsigned int RAM_TOP           = 0x0000000087ffffff;                           // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
-    static const unsigned int MIO_BASE          = 0x0000000000000000;
-    static const unsigned int MIO_TOP           = 0x000000001fffffff;
+    // Physical Memory 27FFFFFFF
+    static const unsigned long RAM_BASE          = 0x0000000080000000;                           // 2 GB
+    static const unsigned long RAM_TOP           = 0x000000027fffffff;                           // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
+    static const unsigned long MIO_BASE          = 0x0000000000000000;
+    static const unsigned long MIO_TOP           = 0x000000001fffffff;
     //static const unsigned int PAGE_TABLES       = 0x87f00000; // MEM_TOP - 16 MB                       // 512 MB (max 512 MB of MIO => RAM + MIO < 2 G)
 
     // Physical Memory at Boot
@@ -32,16 +32,16 @@ public:
     static const unsigned long IMAGE             = 0x0000000080100000;                           // RAM_BASE + 1 MB (will be part of the free memory at INIT, defines the maximum image size; if larger than 3 MB then adjust at SETUP)
 
     // Logical Memory
-    static const unsigned long APP_LOW           = library ? RAM_BASE : 0x0000000080400000;      // 2 GB + 4 MB
-    static const unsigned long APP_HIGH          = 0x00000000ff7ffff;                           // SYS - 1
+    static const unsigned long APP_LOW           = library ? RAM_BASE : 0x0000000080400000;      // 2 GB + 4 MB         0x00000000ff7ffff
+    static const unsigned long APP_HIGH          = library ? RAM_TOP  : 0x0000000280400000;                           // SYS - 1
 
     static const unsigned long APP_CODE          = APP_LOW;
     static const unsigned long APP_DATA          = APP_CODE + 4 * 1024 * 1024;
 
     static const unsigned long INIT              = library ? NOT_USED :0x0000000080080000;       // RAM_BASE + 512 KB (will be part of the free memory at INIT)
-    static const unsigned long PHY_MEM           = 0x00000000ff800000;                           // 512 MB (max 1536 MB of RAM)
+    static const unsigned long PHY_MEM           = 0xffffff8000800000;                           // 512 MB (max 1536 MB of RAM)
     static const unsigned long IO                = 0x0000000000000000;                           // 0 (max 512 MB of IO = MIO_TOP - MIO_BASE)
-    static const unsigned long SYS               = 0xffffff8000000000;                           // 4 GB - 8 MB
+    static const unsigned long SYS               = 0xffffffff80800000;                           // 4 GB - 8 MB
 
 
     // Default Sizes and Quantities

@@ -413,6 +413,10 @@ public:
 
     static void sret() { ASM("sret"); }
 
+    // pmp registers
+    static void pmpcfg0(Reg r) { ASM("csrw pmpcfg0, %0" : : "r"(r) : "cc"); }
+    static void pmpaddr0(Reg r) { ASM("csrw pmpaddr0, %0" : : "r"(r) : "cc"); }
+
     static void satp(Reg r) { ASM("csrw satp, %0" : : "r"(r) : "cc"); }
     static Reg  satp() { Reg r; ASM("csrr %0, satp" :  "=r"(r) : : ); return r; }
 
