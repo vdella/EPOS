@@ -9,7 +9,7 @@
 
 __BEGIN_SYS
 
-template<unsigned int DIRECTORY2_BITS, unsigned int DIRECTORY1_BITS, unsigned int PAGE_BITS, unsigned int OFFSET_BITS>
+template<unsigned int DIRECTORY_BITS_LVL_2, unsigned int DIRECTORY_BITS_LVL_1, unsigned int PAGE_BITS, unsigned int OFFSET_BITS>
 class MMU_Common
 {
 protected:
@@ -21,11 +21,11 @@ protected:
     typedef CPU::Phy_Addr Phy_Addr;
 
     // Page constants
-    static const unsigned long DIRECTORY_BITS = DIRECTORY1_BITS;
     static const unsigned long PAGE_SHIFT = OFFSET_BITS;
     static const unsigned long PAGE_SIZE = 1 << PAGE_SHIFT;
-    static const unsigned long DIRECTORY_SHIFT = OFFSET_BITS + PAGE_BITS;
-    static const unsigned long MASTER_SHIFT = DIRECTORY_SHIFT + DIRECTORY_BITS;
+    static const unsigned long DIRECTORY_SHIFT_LVL_1 = OFFSET_BITS + PAGE_BITS;
+    static const unsigned long DIRECTORY_SHIFT_LVL_2 = OFFSET_BITS + PAGE_BITS + DIRECTORY_BITS_LVL_1;
+
 
 public:
     // Memory page
@@ -71,8 +71,8 @@ public:
 
     // Number of entries in Page_Table and Page_Directory
     static const unsigned int PT_ENTRIES = 1 << PAGE_BITS;
-    static const unsigned int PD_ENTRIES = 1 << DIRECTORY_BITS;
-    
+    static const unsigned int PD_ENTRIES = 1 << DIRECTORY_BITS_LVL_1;
+
 public:
     constexpr static unsigned long pages(unsigned long bytes) { return (bytes + sizeof(Page) - 1) / sizeof(Page); }
     constexpr static unsigned long page_tables(unsigned long pages) { return sizeof(Page) > sizeof(long) ? (pages + PT_ENTRIES - 1) / PT_ENTRIES : 0; }
@@ -81,17 +81,16 @@ public:
     constexpr static unsigned long indexes(const Log_Addr & addr) { return addr & ~(sizeof(Page) - 1); }
 
     constexpr static unsigned long page(const Log_Addr & addr) { return (addr >> PAGE_SHIFT) & (PT_ENTRIES - 1); }
-
-    constexpr static unsigned long directory(const Log_Addr & addr) { return (addr >> DIRECTORY_SHIFT) & (PD_ENTRIES - 1); }
-
-    constexpr static unsigned long directory2(const Log_Addr & addr) { return (addr >> MASTER_SHIFT); }
-
+    constexpr static unsigned long directory_lvl_1(const Log_Addr & addr) { return addr >> DIRECTORY_SHIFT_LVL_1; }
+    constexpr static unsigned long directory_lvl_2(const Log_Addr & addr) { return addr >> DIRECTORY_SHIFT_LVL_2; }
     constexpr static unsigned long index(const Log_Addr & base, const Log_Addr & addr) { return (addr - base) >> PAGE_SHIFT; }
 
     constexpr static Log_Addr align_page(const Log_Addr & addr) { return (addr + sizeof(Page) - 1) & ~(sizeof(Page) - 1); }
     constexpr static Log_Addr align_directory(const Log_Addr & addr) { return (addr + PT_ENTRIES * sizeof(Page) - 1) &  ~(PT_ENTRIES * sizeof(Page) - 1); }
 
-    constexpr static Log_Addr directory_bits(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_SHIFT) - 1)); } //DIRECTORY_BITS?
+    constexpr static Log_Addr directory_bits_lvl1(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_SHIFT_LVL_1) - 1)); }
+    constexpr static Log_Addr directory_bits_lvl2(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_SHIFT_LVL_2) - 1)); }
+
 };
 
 class No_MMU: public MMU_Common<0, 0, 0, 0>
