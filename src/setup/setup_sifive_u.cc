@@ -139,47 +139,40 @@ void Setup::init_mmu()
 
     // PD2 + PD1 page directory entries.
     unsigned total_pdes = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
-    db<Setup>(INF) << "PD entries = " << pd_entradas << endl;
 
     db<Setup>(INF) << "Initializing auxiliary variables!" << endl;
 
-    unsigned int lvl2 = 512;
-    unsigned int lvl1 = 512 * 512;
+    unsigned int lvl2 = total_pdes/PD_ENTRIES;
+    unsigned int lvl1 = 512;
     unsigned int PAGE = 4 * 1024;
     Phy_Addr first_page_table = Memory_Map::PAGE_TABLES;
 
-    _master->remap(first_page_table, RV64Flags::V, 0, 1);
+    _master->remap(first_page_table, RV64Flags::V, 0, lvl2);
 
     first_page_table += PAGE;
 
     for (unsigned i = 0; i < lvl2; i++) 
     {
         Page_Directory * pd = new ((void*) first_page_table) Page_Directory();
-        _master[i] = *pd;
-        (&(_master[i]))->remap(first_page_table, RV64Flags::V);
-        first_page_table += PD_ENTRIES * PAGE;  // TODO Is this right? Should we do first_page_table += PAGE?
+        pd->remap(first_page_table, RV64Flags::V);
+        first_page_table += PAGE;  // TODO Is this right? Should we do first_page_table += PAGE?
     }
-
-    db<Setup>(INF) << "Passed through lvl2 initialization!" << pd_entradas << endl;
 
     for (unsigned i = 0; i < lvl2; i++)
     {
-        db<Setup>(INF) << "lvl2 addr = " << i << endl;
+        db<Setup>(WRN) << "lvl2 addr = " << i << endl;
 
-        for (unsigned j = 0; j < lvl1 * lvl1; j++)
+        for (unsigned j = 0; j < lvl1; j++)
         {
-            db<Setup>(INF) << "lvl1 addr = " << j << endl;
+            db<Setup>(WRN) << "lvl1 addr = " << j << endl;
 
             Page_Table * pt = new ((void*) first_page_table) Page_Table();
             pt->remap(first_page_table, RV64Flags::SYS);
-            
-            (&(_master[i]))[j] = *pt;
-
-            first_page_table += PT_ENTRIES * PAGE;  // TODO Is this right?
+            first_page_table += PAGE;  // TODO Is this right?
         }
     }
 
-    db<Setup>(INF) << "Time to flush the MMU!" << endl;
+    db<Setup>(WRN) << "Time to flush the MMU!" << endl;
 
     MMU::flush_tlb();
     
