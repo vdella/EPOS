@@ -142,20 +142,24 @@ void Setup::init_mmu()
 
     // Total de entradas de pd2 + pd1
     unsigned pd_entradas = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
+    kout << "PD entradas: " << pd_entradas << endl;
 
     kout << "Assigning auxiliary variables." << endl;
-    unsigned int lvl2 = pd_entradas / PD_ENTRIES;
+    // unsigned int lvl2 = pd_entradas / PD_ENTRIES;
     unsigned int lvl1 = PD_ENTRIES;
     unsigned int PAGE = 4 * 1024;
-    unsigned long addr = Memory_Map::PAGE_TABLES;
+    Phy_Addr addr = Memory_Map::PAGE_TABLES;
 
     kout << "Remapping master!" << endl;
-    _master->remap(addr, RV64Flags::V, 0, lvl2);
-    addr += lvl2 * PAGE;
+    kout << "PAGE_TABLES = " << addr << endl;
+
+    _master->remap(addr, RV64Flags::V, 0, 1);
+
+    addr += PAGE;
     kout << addr << endl;
     kout << "Remapped master!" << endl;
 
-    for (unsigned i = 0; i < lvl2; i++)
+    for (unsigned i = 0; i < 512; i++) 
     {
         Page_Directory * pd = new ((void*) addr) Page_Directory();
         _master[i] = *pd;
@@ -165,14 +169,30 @@ void Setup::init_mmu()
 
     kout << "Assigned lvl2 - first iterative loop!" << endl;
 
-    for (unsigned i = 0; i < lvl2; i++)
+    kout << "Addr = " << addr << endl;
+    kout << "lvl1 = " << lvl1 << endl;
+
+    for (unsigned i = 0; i < 512; i++)
     {
-        for (unsigned j = 0; j < lvl1; j++)
+        kout << "i = " << i << endl;
+        for (unsigned j = 0; j < lvl1 * lvl1; j++)
         {
+            kout << "j = " << j << endl;
+
+            kout << "Getting page tables!" << endl;
             Page_Table * pt = new ((void*) addr) Page_Table();
+
+            kout << "Remapping" << endl;
+            kout << "Addr = " << addr << endl;
             pt->remap(addr, RV64Flags::SYS);
+            kout << "Addr = " << addr << endl;
+            
+            kout << "Referencing" << endl;
             (&(_master[i]))[j] = *pt;
+
+            kout << "Summing address" << endl;
             addr += PT_ENTRIES * PAGE;
+            kout << "Addr = " << addr << endl;
         }
     }
 
@@ -223,9 +243,9 @@ void _entry() // machine mode
     CPU::pmpcfg0(0x1f);
     CPU::pmpaddr0((1UL << 55) - 1);
 
-    // Salva o hartid para poder usar em s-mode
-    Reg core = CPU::mhartid();
-    CPU::tp(core);
+    // // Salva o hartid para poder usar em s-mode
+    // Reg core = CPU::mhartid();
+    // CPU::tp(core);
 
     // Delegar as instrucoes e as excecoes
     CPU::mideleg(CPU::SSI | CPU::STI | CPU::SEI);

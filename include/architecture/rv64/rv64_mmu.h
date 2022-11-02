@@ -35,7 +35,7 @@ public:
             W   = 1 << 2, //Writable
             X   = 1 << 3, //Executable
             U   = 1 << 4, //User
-            G   = 1 << 5, // Global
+            G   = 1 << 5, //Global
             A   = 1 << 6, //Accesed
             D   = 1 << 7, //Dirty
             CT  = 1 << 8, // Contiguous
@@ -81,14 +81,24 @@ public:
             } else {
                 for(; from < to; from++){
                     ptes[from] = phy2pte(alloc(1), flags);
-
                 }
             }
         }
-        void remap(Phy_Addr addr, RV64_Flags flags, int from = 0, int to = 512) {
+
+        void remap(Phy_Addr addr, RV64_Flags flags, int from = 0, int to = 512, int size = sizeof(Page)) {
             addr = align_page(addr);
-            for( ; from < to; from++) {
+
+            // db<MMU>(WRN) << "Remapping! addr = " << addr << endl;
+
+            for(; from < to; from++) 
+            {
+                // db<MMU>(WRN) << "In." << endl;
+                // db<MMU>(WRN) << "ptes[from - 1] = " << ptes[from - 1] << endl;
+
+                // db<MMU>(WRN) << "addr = " << addr << endl;
                 ptes[from] = phy2pte(addr, flags);
+                // db<MMU>(WRN) << "Out." << endl;
+                
                 addr += sizeof(Page);
             }
         }
