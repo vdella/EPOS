@@ -134,72 +134,56 @@ void Setup::say_hi()
 
 void Setup::init_mmu()
 {
-    kout << "Initializing MMU..." << endl;
-
-    kout << "Creating master!" << endl;
+    db<Setup>(WRN) << "Initializing MMU..." << endl;
     Page_Directory * _master = new ((void*) Memory_Map::PAGE_TABLES) Page_Directory();
-    kout << "Created master!" << endl;
 
-    // Total de entradas de pd2 + pd1
-    unsigned pd_entradas = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
-    kout << "PD entradas: " << pd_entradas << endl;
+    // PD2 + PD1 page directory entries.
+    unsigned total_pdes = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
+    db<Setup>(INF) << "PD entries = " << pd_entradas << endl;
 
-    kout << "Assigning auxiliary variables." << endl;
-    // unsigned int lvl2 = pd_entradas / PD_ENTRIES;
-    unsigned int lvl1 = PD_ENTRIES;
+    db<Setup>(INF) << "Initializing auxiliary variables!" << endl;
+
+    unsigned int lvl2 = 512;
+    unsigned int lvl1 = 512 * 512;
     unsigned int PAGE = 4 * 1024;
-    Phy_Addr addr = Memory_Map::PAGE_TABLES;
+    Phy_Addr first_page_table = Memory_Map::PAGE_TABLES;
 
-    kout << "Remapping master!" << endl;
-    kout << "PAGE_TABLES = " << addr << endl;
+    _master->remap(first_page_table, RV64Flags::V, 0, 1);
 
-    _master->remap(addr, RV64Flags::V, 0, 1);
+    first_page_table += PAGE;
 
-    addr += PAGE;
-    kout << addr << endl;
-    kout << "Remapped master!" << endl;
-
-    for (unsigned i = 0; i < 512; i++) 
+    for (unsigned i = 0; i < lvl2; i++) 
     {
-        Page_Directory * pd = new ((void*) addr) Page_Directory();
+        Page_Directory * pd = new ((void*) first_page_table) Page_Directory();
         _master[i] = *pd;
-        (&(_master[i]))->remap(addr, RV64Flags::V);
-        addr += PD_ENTRIES * PAGE;
+        (&(_master[i]))->remap(first_page_table, RV64Flags::V);
+        first_page_table += PD_ENTRIES * PAGE;  // TODO Is this right? Should we do first_page_table += PAGE?
     }
 
-    kout << "Assigned lvl2 - first iterative loop!" << endl;
+    db<Setup>(INF) << "Passed through lvl2 initialization!" << pd_entradas << endl;
 
-    kout << "Addr = " << addr << endl;
-    kout << "lvl1 = " << lvl1 << endl;
-
-    for (unsigned i = 0; i < 512; i++)
+    for (unsigned i = 0; i < lvl2; i++)
     {
-        kout << "i = " << i << endl;
+        db<Setup>(INF) << "lvl2 addr = " << i << endl;
+
         for (unsigned j = 0; j < lvl1 * lvl1; j++)
         {
-            kout << "j = " << j << endl;
+            db<Setup>(INF) << "lvl1 addr = " << j << endl;
 
-            kout << "Getting page tables!" << endl;
-            Page_Table * pt = new ((void*) addr) Page_Table();
-
-            kout << "Remapping" << endl;
-            kout << "Addr = " << addr << endl;
-            pt->remap(addr, RV64Flags::SYS);
-            kout << "Addr = " << addr << endl;
+            Page_Table * pt = new ((void*) first_page_table) Page_Table();
+            pt->remap(first_page_table, RV64Flags::SYS);
             
-            kout << "Referencing" << endl;
             (&(_master[i]))[j] = *pt;
 
-            kout << "Summing address" << endl;
-            addr += PT_ENTRIES * PAGE;
-            kout << "Addr = " << addr << endl;
+            first_page_table += PT_ENTRIES * PAGE;  // TODO Is this right?
         }
     }
 
-    kout << "Almost flushing!" << endl;
+    db<Setup>(INF) << "Time to flush the MMU!" << endl;
 
     MMU::flush_tlb();
-    kout << "Chegamos no final" << endl;
+    
+    db<Setup>(WRN) << "Initialized MMU successfully!" << endl;
     kout << endl;
 }
 
@@ -209,11 +193,14 @@ void Setup::call_next()
 
     // Call the next stage
     CPU::satp((1UL << 63) | (Memory_Map::PAGE_TABLES >> 12));
-    kout << "Passou SATP" << endl;
+    db<Setup>(INF) << "Passed throught SATP" << endl;
+
     CPU::sstatus(CPU::SPP_S);
-    kout << "Passou SSTATUS" << endl;
+    db<Setup>(INF) << "Passed throught SSTATUS" << endl;
+    
     CPU::sepc(CPU::Reg(&_start));
-    kout << "Passou SEPC" << endl;
+    db<Setup>(INF) << "Passed throught SEPC" << endl;
+
     CPU::sret();
 
     // SETUP is now part of the free memory and this point should never be reached, but, just in case ... :-)
@@ -242,10 +229,6 @@ void _entry() // machine mode
 
     CPU::pmpcfg0(0x1f);
     CPU::pmpaddr0((1UL << 55) - 1);
-
-    // // Salva o hartid para poder usar em s-mode
-    // Reg core = CPU::mhartid();
-    // CPU::tp(core);
 
     // Delegar as instrucoes e as excecoes
     CPU::mideleg(CPU::SSI | CPU::STI | CPU::SEI);
