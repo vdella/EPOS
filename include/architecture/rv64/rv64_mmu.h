@@ -145,11 +145,11 @@ public:
     class Directory
     {
     public:
-        Directory() : _pd(calloc(1)) {
+        Directory() : _pd(calloc(513)) {
             for(unsigned int i = 0; i < PD_ENTRIES; i++){
                 (*_pd)[i] = (*_master)[i];
-                for (unsigned int j = 0; j < PD_ENTRIES; j++)
-                  (*_pd)[i][j] = (*_master)[i][j];
+                //for (unsigned int j = 0; j < PD_ENTRIES; j++)
+                // (*_pd)[i][j] = (*_master)[i][j];
             }
         }
         Directory(Page_Directory * pd) : _pd(pd) {}

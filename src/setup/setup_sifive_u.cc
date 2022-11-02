@@ -135,28 +135,32 @@ void Setup::say_hi()
 void Setup::init_mmu()
 {
     db<Setup>(WRN) << "Initializing MMU..." << endl;
-    Page_Directory * _master = new ((void*) Memory_Map::PAGE_TABLES) Page_Directory();
-
-    // PD2 + PD1 page directory entries.
     unsigned total_pdes = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
-
-    db<Setup>(INF) << "Initializing auxiliary variables!" << endl;
-
     unsigned int lvl2 = total_pdes/PD_ENTRIES;
     unsigned int lvl1 = 512;
     unsigned int PAGE = 4 * 1024;
-    Phy_Addr first_page_table = Memory_Map::PAGE_TABLES;
+    Phy_Addr addr = Memory_Map::PAGE_TABLES;
+    Phy_Addr addr_lvl1 = addr;
+    Phy_Addr addr_lvl0 = addr;
 
-    _master->remap(first_page_table, RV64Flags::V, 0, lvl2);
+    kout << addr << endl;
+    //0x000000023fdef000
 
-    first_page_table += PAGE;
+    Page_Directory * _master = new ((void*) addr) Page_Directory();
+    _master->remap(addr, RV64Flags::V, 0, lvl2);
+
+    addr += PAGE;
+    addr_lvl1 = addr + lvl2 * PAGE;
 
     for (unsigned i = 0; i < lvl2; i++) 
     {
-        Page_Directory * pd = new ((void*) first_page_table) Page_Directory();
-        pd->remap(first_page_table, RV64Flags::V);
-        first_page_table += PAGE;  // TODO Is this right? Should we do first_page_table += PAGE?
+        Page_Directory * pd_lvl1 = new ((void*) addr) Page_Directory();
+        pd_lvl1->remap(addr_lvl1, RV64Flags::V);
+        addr += PAGE;
+        addr_lvl1 += lvl1 * PAGE;
     }
+
+    addr_lvl0 = addr_lvl1;
 
     for (unsigned i = 0; i < lvl2; i++)
     {
@@ -164,11 +168,12 @@ void Setup::init_mmu()
 
         for (unsigned j = 0; j < lvl1; j++)
         {
-            db<Setup>(WRN) << "lvl1 addr = " << j << endl;
+            //db<Setup>(WRN) << "lvl1 addr = " << j << endl;
 
-            Page_Table * pt = new ((void*) first_page_table) Page_Table();
-            pt->remap(first_page_table, RV64Flags::SYS);
-            first_page_table += PAGE;  // TODO Is this right?
+            Page_Table * pt = new ((void*) addr) Page_Table();
+            pt->remap(addr_lvl0, RV64Flags::SYS);
+            addr += PAGE;
+            addr_lvl0 +=
         }
     }
 
