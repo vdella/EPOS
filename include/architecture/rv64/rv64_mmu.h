@@ -65,7 +65,6 @@ public:
 
     // Page_Table
     class Page_Table {
-
     private:
         PT_Entry ptes[PT_ENTRIES];
 
@@ -73,6 +72,8 @@ public:
         Page_Table() {}
 
         PT_Entry & operator[](unsigned int i) { return ptes[i]; }
+
+        PT_Entry get_entry(unsigned int i) {return ptes[i]; }
 
         void map(RV64_Flags flags, int from, int to) {
             Phy_Addr * addr = alloc(to - from);
@@ -85,20 +86,11 @@ public:
             }
         }
 
-        void remap(Phy_Addr addr, RV64_Flags flags, int from = 0, int to = 512, int size = sizeof(Page)) {
+        void remap(Phy_Addr addr, RV64_Flags flags, int from = 0, int to = 512) {
             addr = align_page(addr);
-
-            // db<MMU>(WRN) << "Remapping! addr = " << addr << endl;
-
-            for(; from < to; from++) 
+            for(; from < to; from++)
             {
-                // db<MMU>(WRN) << "In." << endl;
-                // db<MMU>(WRN) << "ptes[from - 1] = " << ptes[from - 1] << endl;
-
-                // db<MMU>(WRN) << "addr = " << addr << endl;
                 ptes[from] = phy2pte(addr, flags);
-                // db<MMU>(WRN) << "Out." << endl;
-                
                 addr += sizeof(Page);
             }
         }
@@ -145,13 +137,13 @@ public:
     class Directory
     {
     public:
-        Directory() : _pd(calloc(513)) {
+        Directory() : _pd(calloc(1)) {
+            db<MMU>(WRN) << "Address :D" << endl;
             for(unsigned int i = 0; i < PD_ENTRIES; i++){
-                (*_pd)[i] = (*_master)[i];
-                //for (unsigned int j = 0; j < PD_ENTRIES; j++)
-                // (*_pd)[i][j] = (*_master)[i][j];
+              (*_pd)[i] = (*_master)[i];
             }
         }
+
         Directory(Page_Directory * pd) : _pd(pd) {}
 
         Page_Table * pd() const { return _pd; }
@@ -161,6 +153,7 @@ public:
 
       //Attach Chunk's PT into the Address Space and return the Page Directory base address.
       Log_Addr attach(const Chunk & chunk, unsigned int lvl2 = 0, unsigned int lvl1 = 0) {
+          db<MMU>(WRN) << "Address :/" << endl;
           for(unsigned int i = lvl2; i < PD_ENTRIES; i++)
             for (unsigned int j = lvl1; j < PD_ENTRIES - chunk.pts(); j++)
               if(attach(i, j, chunk.pt(), chunk.pts(), RV64_Flags::V))
@@ -173,9 +166,14 @@ public:
       Log_Addr attach(const Chunk & chunk, const Log_Addr & addr) {
           unsigned int lvl2 = directory_lvl_2(addr);
           unsigned int lvl1 = directory_lvl_1(addr);
+          db<MMU>(WRN) << "Address :(" << endl;
           if(!attach(lvl2, lvl1, chunk.pt(), chunk.pts(), RV64_Flags::V))
               return Log_Addr(false);
-          return lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
+
+          Log_Addr ad = lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
+          assert(addr == ad);
+          db<MMU>(WRN) << "Address :)" << ad << endl;
+          return ad;
       }
 
       void detach(const Chunk & chunk) {

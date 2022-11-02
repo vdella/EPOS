@@ -137,23 +137,29 @@ void Setup::init_mmu()
     db<Setup>(WRN) << "Initializing MMU..." << endl;
     unsigned total_pdes = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
     unsigned int lvl2 = total_pdes/PD_ENTRIES;
-    unsigned int lvl1 = 512;
+    unsigned int lvl1 = PD_ENTRIES;
+    unsigned int lvl0 = PT_ENTRIES;
     unsigned int PAGE = 4 * 1024;
     Phy_Addr addr = Memory_Map::PAGE_TABLES;
     Phy_Addr addr_lvl1 = addr;
     Phy_Addr addr_lvl0 = addr;
 
     kout << addr << endl;
-    //0x000000023fdef000
+    // 0x000000023fdef000
+
 
     Page_Directory * _master = new ((void*) addr) Page_Directory();
-    _master->remap(addr, RV64Flags::V, 0, lvl2);
+
 
     addr += PAGE;
-    addr_lvl1 = addr + lvl2 * PAGE;
+    _master->remap(addr, RV64Flags::V, 0, lvl2);
 
-    for (unsigned i = 0; i < lvl2; i++) 
+    addr_lvl1 = addr + (lvl2 * PAGE);
+
+    for (unsigned i = 0; i < lvl2; i++)
     {
+        //db<Setup>(WRN) << "lvl2 addr = " << addr << endl;
+        //db<Setup>(WRN) << "lvl1 addr = " << addr_lvl1 << endl;
         Page_Directory * pd_lvl1 = new ((void*) addr) Page_Directory();
         pd_lvl1->remap(addr_lvl1, RV64Flags::V);
         addr += PAGE;
@@ -164,40 +170,63 @@ void Setup::init_mmu()
 
     for (unsigned i = 0; i < lvl2; i++)
     {
-        db<Setup>(WRN) << "lvl2 addr = " << i << endl;
 
         for (unsigned j = 0; j < lvl1; j++)
         {
-            //db<Setup>(WRN) << "lvl1 addr = " << j << endl;
+            //db<Setup>(WRN) << "lvl0 addr = " << addr_lvl0 << endl;
 
             Page_Table * pt = new ((void*) addr) Page_Table();
             pt->remap(addr_lvl0, RV64Flags::SYS);
             addr += PAGE;
-            addr_lvl0 +=
+            addr_lvl0 += lvl0 * PAGE;
         }
     }
 
     db<Setup>(WRN) << "Time to flush the MMU!" << endl;
 
     MMU::flush_tlb();
-    
+
     db<Setup>(WRN) << "Initialized MMU successfully!" << endl;
+
+
+    //Teste
+    addr = Memory_Map::PAGE_TABLES;
+    assert(_master == addr);
+    // kout << _master << endl;
+    // addr += PAGE;
+    // for (unsigned int i = 0; i < lvl2; i++) {
+    //   Page_Directory * pd = &(_master[i]);
+    //   for (unsigned int j = 0; j < lvl1; j++) {
+    //     Page_Table * pt = &(pd[j]);
+    //     kout << "PT: " << j << " " << (*pt)[j] << endl;
+    //   }
+    //   kout << "PD: " << i << " " << (*pd)[i] << endl;
+    //}
+    // for(unsigned int i = 0; i < lvl2; i++){
+    //     for (unsigned int j = 0; j < PD_ENTRIES; j++) {
+    //       kout << &((*_master)[i][j]) << endl;
+    //     }
+    // }
+    // for(unsigned int i = 0; i < lvl2; i++){
+    //   kout << &((*_master)[i]) << endl;
+    // }
     kout << endl;
 }
 
+
 void Setup::call_next()
 {
-    db<Setup>(INF) << "SETUP ends here!" << endl;
+    db<Setup>(WRN) << "SETUP ends here!" << endl;
 
     // Call the next stage
     CPU::satp((1UL << 63) | (Memory_Map::PAGE_TABLES >> 12));
-    db<Setup>(INF) << "Passed throught SATP" << endl;
+    db<Setup>(WRN) << "Passed throught SATP" << endl;
 
     CPU::sstatus(CPU::SPP_S);
-    db<Setup>(INF) << "Passed throught SSTATUS" << endl;
-    
+    db<Setup>(WRN) << "Passed throught SSTATUS" << endl;
+
     CPU::sepc(CPU::Reg(&_start));
-    db<Setup>(INF) << "Passed throught SEPC" << endl;
+    db<Setup>(WRN) << "Passed throught SEPC" << endl;
 
     CPU::sret();
 
