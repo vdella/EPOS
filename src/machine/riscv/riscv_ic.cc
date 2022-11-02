@@ -31,7 +31,7 @@ if(Traits<IC>::hysterically_debugged) {
     // Restore context
     ASM("1:                                     \n");
     CPU::Context::pop(true);
-    CPU::iret();
+    CPU::sret();
 }
 
 void IC::dispatch()

@@ -184,7 +184,6 @@ void Setup::init_mmu()
 
     db<Setup>(WRN) << "Time to flush the MMU!" << endl;
 
-    MMU::flush_tlb();
 
     db<Setup>(WRN) << "Initialized MMU successfully!" << endl;
 
@@ -220,6 +219,7 @@ void Setup::call_next()
 
     // Call the next stage
     CPU::satp((1UL << 63) | (Memory_Map::PAGE_TABLES >> 12));
+    MMU::flush_tlb();
     db<Setup>(WRN) << "Passed throught SATP" << endl;
 
     CPU::sstatus(CPU::SPP_S);
