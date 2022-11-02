@@ -135,37 +135,48 @@ void Setup::say_hi()
 void Setup::init_mmu()
 {
     kout << "Initializing MMU..." << endl;
-    kout << endl;
 
-    Page_Directory *_master = new ((void *)(Memory_Map::PAGE_TABLES)) Page_Directory();
+    kout << "Creating master!" << endl;
+    Page_Directory * _master = new ((void*) Memory_Map::PAGE_TABLES) Page_Directory();
+    kout << "Created master!" << endl;
 
     // Total de entradas de pd2 + pd1
     unsigned pd_entradas = MMU::page_tables(MMU::pages(Traits<Machine>::RAM_TOP + 1 - Traits<Machine>::RAM_BASE));
 
-    unsigned int lvl2 = pd_entradas/PD_ENTRIES;
+    kout << "Assigning auxiliary variables." << endl;
+    unsigned int lvl2 = pd_entradas / PD_ENTRIES;
     unsigned int lvl1 = PD_ENTRIES;
-    unsigned int PAGE = 4096;
+    unsigned int PAGE = 4 * 1024;
     unsigned long addr = Memory_Map::PAGE_TABLES;
 
+    kout << "Remapping master!" << endl;
     _master->remap(addr, RV64Flags::V, 0, lvl2);
-    addr += lvl2*PAGE;
+    addr += lvl2 * PAGE;
+    kout << addr << endl;
+    kout << "Remapped master!" << endl;
 
-    for (unsigned i = 0; i < lvl2; i++) {
-       Page_Directory * pd = new ((void *)addr) Page_Directory();
-       _master[i] = *pd;
-      (&(_master[i]))->remap(addr, RV64Flags::V);
-      addr += PD_ENTRIES*PAGE;
+    for (unsigned i = 0; i < lvl2; i++)
+    {
+        Page_Directory * pd = new ((void*) addr) Page_Directory();
+        _master[i] = *pd;
+        (&(_master[i]))->remap(addr, RV64Flags::V);
+        addr += PD_ENTRIES * PAGE;
     }
 
-    for (unsigned i = 0; i < lvl2; i++) {
-      for (unsigned j = 0; j < lvl1; i++)
-      {
-          Page_Table * pt = new ((void *)addr) Page_Table();
-          pt->remap(addr, RV64Flags::SYS);
-          (&(_master[i]))[j] = *pt;
-          addr += PT_ENTRIES*PAGE;
-      }
+    kout << "Assigned lvl2 - first iterative loop!" << endl;
+
+    for (unsigned i = 0; i < lvl2; i++)
+    {
+        for (unsigned j = 0; j < lvl1; j++)
+        {
+            Page_Table * pt = new ((void*) addr) Page_Table();
+            pt->remap(addr, RV64Flags::SYS);
+            (&(_master[i]))[j] = *pt;
+            addr += PT_ENTRIES * PAGE;
+        }
     }
+
+    kout << "Almost flushing!" << endl;
 
     MMU::flush_tlb();
     kout << "Chegamos no final" << endl;
