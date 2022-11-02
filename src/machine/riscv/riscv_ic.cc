@@ -60,7 +60,7 @@ void IC::int_not(Interrupt_Id id)
 
 void IC::exception(Interrupt_Id id)
 {
-    CPU::Reg epc = CPU::Sepc();
+    CPU::Reg epc = CPU::sepc();
     CPU::Reg sp = CPU::sp();
     CPU::Reg status = CPU::sstatus();
     CPU::Reg cause = CPU::scause();
