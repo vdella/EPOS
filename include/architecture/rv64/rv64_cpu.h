@@ -224,9 +224,9 @@ public:
     using CPU_Common::max_clock;
     using CPU_Common::bus_clock;
 
-    static void int_enable()  { mint_enable(); }
-    static void int_disable() { mint_disable(); }
-    static bool int_enabled() { return (mstatus() & MIE); }
+    static void int_enable()  { sint_enable(); }
+    static void int_disable() { sint_disable(); }
+    static bool int_enabled() { return (sstatus() & SIE); }
     static bool int_disabled() { return !int_enabled(); }
 
     static void halt() { ASM("wfi"); }
@@ -346,7 +346,7 @@ public:
     static void a1(Reg r) {  ASM("mv a1, %0" : : "r"(r) :); }
 
     static void ecall() { ASM("ecall"); }
-    static void iret() { mret(); }
+    static void iret() { sret(); }
 
     // Machine mode
     static void mint_enable()  { ASM("csrsi mstatus, %0" : : "i"(MIE) : "cc"); }
@@ -485,11 +485,11 @@ inline void CPU::Context::pop(bool interrupt)
 if(interrupt) {
     ASM("       add      x3, x3, a0             \n");   // a0 is set by exception handlers to adjust [M|S]EPC to point to the next instruction if needed
 }
-    ASM("       csrw     mepc, x3               \n");   // MEPC = PC
+    ASM("       csrw     sepc, x3               \n");   // MEPC = PC
 
     ASM("       ld       x3,    8(sp)           \n");   // pop ST into TMP
 if(!interrupt) {
-    ASM("       li       a0, 3 << 11            \n"     // use a0 as a second TMP, since it will be restored later
+    ASM("       li       a0, 1 << 8            \n"     // use a0 as a second TMP, since it will be restored later
         "       or       x3, x3, a0             \n");   // mstatus.MPP is automatically cleared on mret, so we reset it to MPP_M here
 }
 
@@ -523,7 +523,7 @@ if(!interrupt) {
         "       ld      x31,  232(sp)           \n"
         "       addi    sp, sp, %0              \n" : : "i"(sizeof(Context))); // complete the pops above by adjusting SP
 
-    ASM("       csrw    mstatus, x3             \n");   // MSTATUS = ST
+    ASM("       csrw    sstatus, x3             \n");   // MSTATUS = ST
 }
 
 inline CPU::Reg64 htole64(CPU::Reg64 v) { return CPU::htole64(v); }
