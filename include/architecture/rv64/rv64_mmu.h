@@ -46,7 +46,7 @@ public:
             KC   = (V | R | X),
             KD   = (V | R | W),
             UD   = (V | R | W | U),
-            UC   = (V | R | X | U),
+            PD   = (V | A | D)
         };
 
         RV64_Flags() {}
@@ -86,12 +86,12 @@ public:
             }
         }
 
-        void remap(Phy_Addr addr, RV64_Flags flags, int from = 0, int to = 512) {
+        void remap(Phy_Addr addr, RV64_Flags flags, int from = 0, int to = 512, int size = sizeof(Page)) {
             addr = align_page(addr);
             for(; from < to; from++)
             {
                 ptes[from] = phy2pte(addr, flags);
-                addr += sizeof(Page);
+                addr += size;
             }
         }
     };
@@ -138,8 +138,8 @@ public:
     {
     public:
         Directory() : _pd(calloc(1)) {
-            db<MMU>(WRN) << "Address :D" << endl;
-            for(unsigned int i = 0; i < PD_ENTRIES; i++){
+            assert(1 == 0);
+            for(unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++){
               (*_pd)[i] = (*_master)[i];
             }
         }
@@ -148,14 +148,12 @@ public:
 
         Page_Table * pd() const { return _pd; }
 
-        void activate() const {CPU::pdp(reinterpret_cast<CPU::Reg64>(_pd));}
-
 
       //Attach Chunk's PT into the Address Space and return the Page Directory base address.
       Log_Addr attach(const Chunk & chunk, unsigned int lvl2 = 0, unsigned int lvl1 = 0) {
           db<MMU>(WRN) << "Address :/" << endl;
-          for(unsigned int i = lvl2; i < PD_ENTRIES; i++)
-            for (unsigned int j = lvl1; j < PD_ENTRIES - chunk.pts(); j++)
+          for(unsigned int i = lvl2; i < PD_ENTRIES_LVL_1; i++)
+            for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_2 - chunk.pts(); j++)
               if(attach(i, j, chunk.pt(), chunk.pts(), RV64_Flags::V))
                 return i << (DIRECTORY_SHIFT_LVL_2) | j << DIRECTORY_SHIFT_LVL_1;
           return false;
@@ -177,8 +175,8 @@ public:
       }
 
       void detach(const Chunk & chunk) {
-          for(unsigned int i = 0; i < PD_ENTRIES; i++) {
-            for(unsigned int j = 0; j < PD_ENTRIES; j++)
+          for(unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++) {
+            for(unsigned int j = 0; j < PD_ENTRIES_LVL_2; j++)
               if(indexes((*_pd)[i][j]) == indexes(phy2pde(chunk.pt()))) {
                   detach(i, j, chunk.pt(), chunk.pts());
                   return;
@@ -261,7 +259,7 @@ public:
     //return _master;
     static Page_Directory *volatile current()
     {
-        return static_cast<Page_Directory *volatile>(phy2log(CPU::pdp()));
+        return _master;
     }
 
 

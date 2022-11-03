@@ -9,7 +9,7 @@
 
 __BEGIN_SYS
 
-template<unsigned int DIRECTORY_BITS_LVL_2, unsigned int DIRECTORY_BITS_LVL_1, unsigned int PAGE_BITS, unsigned int OFFSET_BITS>
+template<unsigned int DIRECTORY_BITS_LVL_2, int DIRECTORY_BITS_LVL_1, unsigned int PAGE_BITS, unsigned int OFFSET_BITS>
 class MMU_Common
 {
 protected:
@@ -71,7 +71,8 @@ public:
 
     // Number of entries in Page_Table and Page_Directory
     static const unsigned int PT_ENTRIES = 1 << PAGE_BITS;
-    static const unsigned int PD_ENTRIES = 1 << DIRECTORY_BITS_LVL_1;
+    static const unsigned int PD_ENTRIES_LVL_1 = 1 << DIRECTORY_BITS_LVL_1;
+    static const unsigned int PD_ENTRIES_LVL_2 = 1 << DIRECTORY_BITS_LVL_2;
 
 public:
     constexpr static unsigned long pages(unsigned long bytes) { return (bytes + sizeof(Page) - 1) / sizeof(Page); }
@@ -83,13 +84,14 @@ public:
     constexpr static unsigned long page(const Log_Addr & addr) { return (addr >> PAGE_SHIFT) & (PT_ENTRIES - 1); }
     constexpr static unsigned long directory_lvl_1(const Log_Addr & addr) { return addr >> DIRECTORY_SHIFT_LVL_1; }
     constexpr static unsigned long directory_lvl_2(const Log_Addr & addr) { return addr >> DIRECTORY_SHIFT_LVL_2; }
+
     constexpr static unsigned long index(const Log_Addr & base, const Log_Addr & addr) { return (addr - base) >> PAGE_SHIFT; }
 
     constexpr static Log_Addr align_page(const Log_Addr & addr) { return (addr + sizeof(Page) - 1) & ~(sizeof(Page) - 1); }
     constexpr static Log_Addr align_directory(const Log_Addr & addr) { return (addr + PT_ENTRIES * sizeof(Page) - 1) &  ~(PT_ENTRIES * sizeof(Page) - 1); }
 
-    constexpr static Log_Addr directory_bits_lvl1(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_SHIFT_LVL_1) - 1)); }
-    constexpr static Log_Addr directory_bits_lvl2(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_SHIFT_LVL_2) - 1)); }
+    constexpr static Log_Addr directory_bits_lvl1(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_BITS_LVL_1) - 1)); }
+    constexpr static Log_Addr directory_bits_lvl2(const Log_Addr & addr) { return (addr & ~((1 << DIRECTORY_BITS_LVL_2) - 1)); }
 
 };
 
