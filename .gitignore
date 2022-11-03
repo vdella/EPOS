@@ -6,3 +6,6 @@
 
 # Diffs from activities
 *.txt
+
+# Object files put by accident
+*.o
