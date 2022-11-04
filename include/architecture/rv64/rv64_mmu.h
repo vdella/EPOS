@@ -90,6 +90,9 @@ public:
             addr = align_page(addr);
             for(; from < to; from++)
             {
+                // Log_Addr * pte = phy2log(&ptes[from]);
+                // *pte = phy2pte(addr, flags);
+
                 ptes[from] = phy2pte(addr, flags);
                 addr += size;
             }
@@ -137,7 +140,7 @@ public:
     class Directory
     {
     public:
-        Directory() : _pd(calloc(1)) {
+        Directory() : _pd(phy2log(calloc(1))) {
             assert(1 == 0);
             for(unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++){
               (*_pd)[i] = (*_master)[i];

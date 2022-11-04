@@ -95,8 +95,8 @@ Setup::Setup()
     // Print basic facts about this EPOS instance
     say_hi();
 
-    enable_paging();
-    // init_mmu();
+    // enable_paging();
+    init_mmu();
 
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
     call_next();
@@ -147,33 +147,33 @@ void Setup::enable_paging()
     unsigned total_pdes = MMU::page_tables(pages);
     unsigned int PD_ENTRIES_LVL_2 = total_pdes / PT_ENTRIES;
     unsigned int PD_ENTRIES_LVL_1 = PT_ENTRIES;
-    unsigned int PT_ENTRIES_LV0 = PT_ENTRIES;
+    unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
 
-    unsigned long addr = PAGE_TABLES;
+    unsigned long PD2_ADDR = PAGE_TABLES;
 
-    Page_Directory *_pd_master = new ((void *)addr) Page_Directory();
-    addr += PAGE_SIZE;
+    Page_Directory *master = new ((void *)PD2_ADDR) Page_Directory();
+    PD2_ADDR += PAGE_SIZE;
 
-    //_pd_master->remap(addr, RV64_Flags::PD, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
-    _pd_master->remap(addr, RV64_Flags::V, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
+    //master->remap(PD2_ADDR, RV64_Flags::PD, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
+    master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
 
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
     {
-        Page_Directory *pd_lv1 = new ((void *)addr) Page_Directory();
-        addr += PAGE_SIZE;
-        pd_lv1->remap(addr, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
+        Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
+        PD2_ADDR += PAGE_SIZE;
+        pd_lv1->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
 
         for (unsigned long j = 0; j < PD_ENTRIES_LVL_1; j++)
         {
-            Page_Table *pt_lv0 = new ((void *)addr) Page_Table();
-            addr += PAGE_SIZE;
-            pt_lv0->remap((PT_ENTRIES_LV0 * PAGE_SIZE * (j + (i * PD_ENTRIES_LVL_1))), RV64_Flags::SYS, 0, PT_ENTRIES_LV0);
+            Page_Table *pt_lv0 = new ((void *)PD2_ADDR) Page_Table();
+            PD2_ADDR += PAGE_SIZE;
+            pt_lv0->remap((PT_ENTRIES_LVL_0 * PAGE_SIZE * (j + (i * PD_ENTRIES_LVL_1))), RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
         }
     }
 
     db<Setup>(INF) << "Set SATP" << endl;
     // Set SATP and enable paging
-    CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(_pd_master) >> 12));
+    CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
 
     db<Setup>(INF) << "Flush TLB" << endl;
     // Flush TLB to ensure we've got the right memory organization
@@ -185,44 +185,51 @@ void Setup::init_mmu()
 
     unsigned int PAGE_SIZE = 4096;
     unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
-    unsigned long pages = MMU::pages(RAM_TOP);
+    unsigned long pages = MMU::pages(RAM_TOP + 1);
 
-    unsigned total_pdes = MMU::page_tables(pages);
-    unsigned int PD_ENTRIES_LVL_2 = total_pdes / PT_ENTRIES;
+    kout << "Total Pages: " << pages << endl;
+
+    unsigned total_pts = MMU::page_tables(pages);
+    kout << "Total Page Tables: " << total_pts << endl;
+
+
+    unsigned int PD_ENTRIES_LVL_2 = total_pts / PT_ENTRIES;
     unsigned int PD_ENTRIES_LVL_1 = PT_ENTRIES;
-    unsigned int PT_ENTRIES_LV0 = PT_ENTRIES;
+    unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
 
-    unsigned long addr2 = PAGE_TABLES;
+    Phy_Addr PD2_ADDR = PAGE_TABLES;
 
-    Page_Directory *_pd_master = new ((void *)addr2) Page_Directory();
-    addr2 += PAGE_SIZE;
+    Page_Directory * master = new ((void *)PD2_ADDR) Page_Directory();
+    kout << "Master Base Address: " << PD2_ADDR << endl;
+    PD2_ADDR += PAGE_SIZE;
 
-    //_pd_master->remap(addr, RV64_Flags::PD, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
-    _pd_master->remap(addr2, RV64_Flags::V, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
+// M|PD|PD|512|512
+    //master->remap(PD2_ADDR, RV64_Flags::PD, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
+    master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2);
 
-    unsigned long addr1 = addr2 + PD_ENTRIES_LVL_2 * PAGE_SIZE;
+    Phy_Addr PD1_ADDR = PD2_ADDR + PD_ENTRIES_LVL_2 * PAGE_SIZE;
 
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
     {
-        Page_Directory *pd_lv1 = new ((void *)addr2) Page_Directory();
-        addr2 += PAGE_SIZE;
-        pd_lv1->remap(addr1, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
-        addr1 += PD_ENTRIES_LVL_1 * PAGE_SIZE;
+        Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
+        PD2_ADDR += PAGE_SIZE;
+        pd_lv1->remap(PD1_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
+        PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
     }
 
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
     {
         for (unsigned long j = 0; j < PD_ENTRIES_LVL_1; j++)
         {
-            Page_Table *pt_lv0 = new ((void *)addr1) Page_Table();
-            addr1 += PAGE_SIZE;
-            pt_lv0->remap((PT_ENTRIES_LV0 * PAGE_SIZE * (j + (i * PD_ENTRIES_LVL_1))), RV64_Flags::SYS, 0, PT_ENTRIES_LV0);
+            Page_Table *pt_lv0 = new ((void *)PD2_ADDR) Page_Table();
+            PD2_ADDR += PAGE_SIZE;
+            pt_lv0->remap((PT_ENTRIES_LVL_0 * PAGE_SIZE * (j + (i * PD_ENTRIES_LVL_1))), RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
         }
     }
 
     db<Setup>(INF) << "Set SATP" << endl;
     // Set SATP and enable paging
-    CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(_pd_master) >> 12));
+    CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
 
     db<Setup>(INF) << "Flush TLB" << endl;
     // Flush TLB to ensure we've got the right memory organization
