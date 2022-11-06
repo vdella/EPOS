@@ -198,7 +198,6 @@ void Setup::init_mmu()
     unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
 
     Phy_Addr PD2_ADDR = PAGE_TABLES;
-
     Page_Directory * master = new ((void *)PD2_ADDR) Page_Directory();
     kout << "Master Base Address: " << PD2_ADDR << endl;
     PD2_ADDR += PAGE_SIZE;
@@ -217,16 +216,22 @@ void Setup::init_mmu()
         PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
     }
 
+    PD1_ADDR = 0;
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
     {
         for (unsigned long j = 0; j < PD_ENTRIES_LVL_1; j++)
         {
             Page_Table *pt_lv0 = new ((void *)PD2_ADDR) Page_Table();
             PD2_ADDR += PAGE_SIZE;
-            pt_lv0->remap((PT_ENTRIES_LVL_0 * PAGE_SIZE * (j + (i * PD_ENTRIES_LVL_1))), RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
+            pt_lv0->remap(PD1_ADDR, RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
+            PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
         }
     }
+    // kout << "Page Directory LVL1 Address" << PD1_ADDR << endl;
 
+    kout << "Page Directory End Address" << PD2_ADDR << endl;
+
+//INT MAST 100 not and integer const
     db<Setup>(INF) << "Set SATP" << endl;
     // Set SATP and enable paging
     CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));

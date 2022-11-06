@@ -23,6 +23,7 @@ private:
 
     static const unsigned long PHY_MEM  = Memory_Map::PHY_MEM;
     static const unsigned long RAM_BASE = Memory_Map::RAM_BASE;
+    static const unsigned long APP_LOW  = Memory_Map::APP_LOW;
 
 public:
     // Page Flags
@@ -90,10 +91,10 @@ public:
             addr = align_page(addr);
             for(; from < to; from++)
             {
-                // Log_Addr * pte = phy2log(&ptes[from]);
-                // *pte = phy2pte(addr, flags);
+                Log_Addr * pte = phy2log(&ptes[from]);
+                *pte = phy2pte(addr, flags);
 
-                ptes[from] = phy2pte(addr, flags);
+                // ptes[from] = phy2pte(addr, flags);
                 addr += size;
             }
         }
@@ -140,25 +141,31 @@ public:
     class Directory
     {
     public:
-        Directory() : _pd(phy2log(calloc(1))) {
+        Directory() : _pd(phy2log(calloc(1))), _free(true) {
             assert(1 == 0);
             for(unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++){
               (*_pd)[i] = (*_master)[i];
             }
         }
 
-        Directory(Page_Directory * pd) : _pd(pd) {}
+        Directory(Page_Directory * pd) : _pd(pd), _free(false) {}
+
+        ~Directory() { if(_free) free(_pd); }
 
         Page_Table * pd() const { return _pd; }
 
 
       //Attach Chunk's PT into the Address Space and return the Page Directory base address.
-      Log_Addr attach(const Chunk & chunk, unsigned int lvl2 = 0, unsigned int lvl1 = 0) {
+      Log_Addr attach(const Chunk & chunk, unsigned int lvl2 = directory_lvl_2(APP_LOW), unsigned int lvl1 = directory_lvl_1(APP_LOW)) {
           db<MMU>(WRN) << "Address :/" << endl;
-          for(unsigned int i = lvl2; i < PD_ENTRIES_LVL_1; i++)
-            for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_2 - chunk.pts(); j++)
-              if(attach(i, j, chunk.pt(), chunk.pts(), RV64_Flags::V))
-                return i << (DIRECTORY_SHIFT_LVL_2) | j << DIRECTORY_SHIFT_LVL_1;
+          for(unsigned int i = lvl2; i < PD_ENTRIES_LVL_2; i++)
+            for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_1 - chunk.pts(); j++)
+              if(attach(i, j, chunk.pt(), chunk.pts(), RV64_Flags::V)) {
+                Log_Addr addr = i << (DIRECTORY_SHIFT_LVL_2) | j << DIRECTORY_SHIFT_LVL_1;
+                db<MMU>(WRN) << "Attach Return: " << addr << endl;
+                return addr;
+              }
+          db<MMU>(WRN) << "Achou errado XD" << endl;
           return false;
       }
 
@@ -167,7 +174,10 @@ public:
       Log_Addr attach(const Chunk & chunk, const Log_Addr & addr) {
           unsigned int lvl2 = directory_lvl_2(addr);
           unsigned int lvl1 = directory_lvl_1(addr);
-          db<MMU>(WRN) << "Address :(" << endl;
+          db<MMU>(WRN) << "Logical Address: " << addr << endl;
+          db<MMU>(WRN) << "Level 2: " << lvl2 << endl;
+          db<MMU>(WRN) << "Level 1: " << lvl1 << endl;
+          db<MMU>(WRN) << "Goodbye, World! :(" << endl;
           if(!attach(lvl2, lvl1, chunk.pt(), chunk.pts(), RV64_Flags::V))
               return Log_Addr(false);
 
@@ -203,12 +213,20 @@ public:
 
     private:
 
-        bool attach(unsigned int lvl2, unsigned int lvl1, const Page_Table * pt, unsigned int n, RV64_Flags flags) {
-            for(unsigned int i = lvl1; i < lvl1 + n; i++)
-                if((*_pd)[lvl2][i])
-                    return false;
-            for(unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
-                (*_pd)[lvl2][i] = phy2pte(Phy_Addr(pt), flags);
+      bool attach(unsigned int lvl2, unsigned int lvl1, const Page_Table * pt, unsigned int n, RV64_Flags flags) {
+
+          db<MMU>(WRN) << "Inner Attach Address: " << pt << " n = " << n << endl;
+          Page_Directory * pd_aux = new((void*)(pte2phy((*_pd)[lvl2]))) Page_Directory();
+          for(unsigned int i = lvl1; i < lvl1 + n; i++) {
+              Page_Table * pt_aux = (*pd_aux)[i];
+              if((*pt_aux)[i])
+                  return false;
+          }
+          for(unsigned int i = lvl1; i < lvl1 + n; i++, pt++) {
+              Page_Table * pt_aux = (*pd_aux)[i];
+              (*pt_aux)[i] = phy2pte(Phy_Addr(pt), flags);
+          }
+
             return true;
         }
 
@@ -220,6 +238,7 @@ public:
 
     private:
         Page_Directory * _pd;
+        bool _free;
     };
 
 public:
@@ -227,14 +246,25 @@ public:
 
     static Phy_Addr alloc(unsigned int bytes = 1) {
         Phy_Addr phy(false);
+        int size = 10;
         if(bytes) {
             List::Element * e = _free.search_decrementing(bytes);
-            if(e)
-                phy = reinterpret_cast<unsigned long>(e->object()) + e->size() * PAGE_SIZE;
-            else
-                db<MMU>(ERR) << "MMU::alloc() failed!" << endl;
+            if(e) {
+
+              db<MMU>(INF) << "Object: " << e->object() << endl;
+              size = e->size();
+              phy = reinterpret_cast<unsigned long>(e->object()) + e->size(); //PAGE_SIZE
+            }
+            else {
+              db<MMU>(ERR) << "MMU::alloc() failed!" << endl;
+            }
+            db<MMU>(INF) << "MMU::alloc(bytes=" << bytes << ") => " << phy << endl;
+            db<MMU>(INF) << "MMU::List Element: " << sizeof(List::Element) << endl;
+
+
         }
-        db<MMU>(TRC) << "MMU::alloc(bytes=" << bytes << ") => " << phy << endl;
+
+        db<MMU>(INF) << "Size: " << size << endl;
 
         return phy;
     };
@@ -245,8 +275,10 @@ public:
         return phy;
     }
 
-    static void free(Phy_Addr addr, unsigned int n = 1) {
+    static void free(Phy_Addr addr, unsigned long n = 1) {
         db<MMU>(TRC) << "MMU::free(addr=" << addr << ",n=" << n << ")" << endl;
+
+        addr = indexes(addr);
 
         assert(Traits<CPU>::unaligned_memory_access || !(addr % 4));
 
@@ -255,15 +287,19 @@ public:
             List::Element * m1, * m2;
             _free.insert_merging(e, &m1, &m2);
         }
+        db<MMU>(INF) << "List Size: " << _free.size() << endl;
     }
 
     static unsigned int allocable() { return _free.head() ? _free.head()->size() : 0; }
 
     //return _master;
-    static Page_Directory *volatile current()
-    {
-        return _master;
-    }
+    // static Page_Directory *volatile current()
+    // {
+    //     db<MMU>(WRN) << "Master: " << _master << endl;
+    //     return _master;
+    // }
+
+    static Page_Directory * volatile current() { return static_cast<Page_Directory * volatile>(phy2log(CPU::pdp())); }
 
 
     static void flush_tlb() { CPU::flush_tlb(); }
@@ -272,7 +308,9 @@ public:
 private:
     static void init();
 
-    static Log_Addr phy2log(const Phy_Addr & phy) { return phy + (PHY_MEM - RAM_BASE); }
+    // static Log_Addr phy2log(const Phy_Addr & phy) { return phy + (PHY_MEM - RAM_BASE); }
+    static Log_Addr phy2log(const Phy_Addr & phy) { return phy; }
+
 
     static PD_Entry phy2pde(Phy_Addr bytes) { return ((bytes >> 12) << 10) | RV64_Flags::V; }
 

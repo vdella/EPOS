@@ -75,15 +75,15 @@ public:
     static const unsigned int PD_ENTRIES_LVL_2 = 1 << DIRECTORY_BITS_LVL_2;
 
 public:
-    constexpr static unsigned long pages(unsigned long bytes) { return (bytes + sizeof(Page) - 1) / sizeof(Page); }
+    constexpr static unsigned long pages(unsigned long bytes) {return (bytes + sizeof(Page) - 1) / sizeof(Page); }
     constexpr static unsigned long page_tables(unsigned long pages) { return sizeof(Page) > sizeof(long) ? (pages + PT_ENTRIES - 1) / PT_ENTRIES : 0; }
 
     constexpr static unsigned long offset(const Log_Addr & addr) { return addr & (sizeof(Page) - 1); }
     constexpr static unsigned long indexes(const Log_Addr & addr) { return addr & ~(sizeof(Page) - 1); }
 
     constexpr static unsigned long page(const Log_Addr & addr) { return (addr >> PAGE_SHIFT) & (PT_ENTRIES - 1); }
-    constexpr static unsigned long directory_lvl_1(const Log_Addr & addr) { return addr >> DIRECTORY_SHIFT_LVL_1; }
-    constexpr static unsigned long directory_lvl_2(const Log_Addr & addr) { return addr >> DIRECTORY_SHIFT_LVL_2; }
+    constexpr static unsigned long directory_lvl_1(const Log_Addr & addr) { return (addr >> DIRECTORY_SHIFT_LVL_1) & 0x1ff; }
+    constexpr static unsigned long directory_lvl_2(const Log_Addr & addr) { return (addr >> DIRECTORY_SHIFT_LVL_2) & 0x1ff; }
 
     constexpr static unsigned long index(const Log_Addr & base, const Log_Addr & addr) { return (addr - base) >> PAGE_SHIFT; }
 

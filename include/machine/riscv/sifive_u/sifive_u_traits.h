@@ -68,6 +68,19 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
     static const int FREQUENCY = 1000; // Hz
 };
 
+template <> struct Traits<OTP>: public Traits<Machine_Common>
+{
+    static const unsigned int BYTES_PER_FUSE = 4;
+    static const unsigned int TOTAL_FUSES    = 4096;  // 0x1000, as described by U-Boot.
+
+    static const unsigned int TPW_DELAY      = 20;    // Program pulse width delay
+    static const unsigned int TPWI_DELAY     = 5;     // Program pulse interval delay
+    static const unsigned int TASP_DELAY     = 1;     // Program address setup delay
+    static const unsigned int TCD_DELAY      = 40;    // Read data access delay
+    static const unsigned int TKL_DELAY      = 10;    // Clock pulse low delay
+    static const unsigned int TMS_DELAY      = 1;     // PTM mode setup delay
+};
+
 template <> struct Traits<UART>: public Traits<Machine_Common>
 {
     static const unsigned int UNITS = 2;
@@ -93,7 +106,7 @@ template<> struct Traits<Serial_Display>: public Traits<Machine_Common>
 
 template<> struct Traits<Scratchpad>: public Traits<Machine_Common>
 {
-    static const bool enabled = false;
+    static const bool enabled = true;
 };
 
 __END_SYS

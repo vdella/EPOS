@@ -58,15 +58,28 @@ public:
         IO              = Traits<Machine>::IO,
 
         SYS             = Traits<Machine>::SYS,
-        SYS_CODE        = SYS,
-        SYS_INFO        = SYS + 1 * 1024 * 1024,
-        SYS_PT          = SYS_INFO + 4 * 1024,
-        SYS_PD1         = SYS_PT + 4 * 1024,
-        SYS_PD2         = SYS_PD1 + 4 * 1024,
-        SYS_DATA        = SYS_PD2 + 4 * 1024,
-        SYS_STACK       = SYS_INFO + 1 * 1024 * 1024,
-        SYS_HEAP        = SYS_STACK + 2 * 1024 * 1024,
+        SYS_CODE        = Traits<System>::multitask ? SYS + 0x00000000 : NOT_USED,
+        SYS_INFO        = Traits<System>::multitask ? SYS + 1 * 1024 * 1024 : NOT_USED,
+        SYS_PT          = Traits<System>::multitask ? SYS_INFO + 4 * 1024 : NOT_USED,
+        SYS_PD1         = Traits<System>::multitask ? SYS_PT + 4 * 1024 : NOT_USED,
+        SYS_PD2         = Traits<System>::multitask ? SYS_PD1 + 4 * 1024 : NOT_USED,
+        SYS_DATA        = Traits<System>::multitask ? SYS_PD2 + 4 * 1024 : NOT_USED,
+        SYS_STACK       = Traits<System>::multitask ? SYS_INFO + 1 * 1024 * 1024 : NOT_USED,
+        SYS_HEAP        = Traits<System>::multitask ? SYS_STACK + 2 * 1024 * 1024 : NOT_USED,
         SYS_HIGH        = 0xffffffffffffffff,
+
+
+
+        // SYS             = Traits<Machine>::SYS,
+        // SYS_CODE        = SYS,
+        // SYS_INFO        = SYS + 1 * 1024 * 1024,
+        // SYS_PT          = SYS_INFO + 4 * 1024,
+        // SYS_PD1         = SYS_PT + 4 * 1024,
+        // SYS_PD2         = SYS_PD1 + 4 * 1024,
+        // SYS_DATA        = SYS_PD2 + 4 * 1024,
+        // SYS_STACK       = SYS_INFO + 1 * 1024 * 1024,
+        // SYS_HEAP        = SYS_STACK + 2 * 1024 * 1024,
+        // SYS_HIGH        = 0xffffffffffffffff,
     };
 };
 
