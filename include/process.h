@@ -129,6 +129,8 @@ protected:
     Thread *volatile _joining;
     Queue::Element _link;
 
+    volatile Task * _task;
+
     static volatile unsigned int _thread_count;
     static Scheduler_Timer *_timer;
     static Scheduler<Thread> _scheduler;
@@ -187,7 +189,7 @@ private:
     typedef CPU::Log_Addr Log_Addr;
 
 public:
-    static volatile Task *_active;
+    static volatile Task *_active;  // Why?
     Heap *_heap;
     bool has_idle;
 
