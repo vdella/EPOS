@@ -18,18 +18,28 @@ Setting up this machine as follows:
 Total Pages: 2621440
 Total Page Tables: 5120
 Master Base Address: 0x000000023fdef000
+Page Directory LVL1 Address0x0000000280000000
 Page Directory End Address0x00000002411fa000
 Initializing the architecture: 
 Initializing system's heap: 
 Master Address: 0x000000023fdef000
+Preheap:  Size: 1114112
 Address :/
-Inner Attach Address: 0x00000000801fffef n = 1
-Attach Return: 0x0000000080000000
+Attach Return: 0x0000000080000000!!!!
 Heap: 
 Initializing the machine: 
-Hello world!
-The last thread has exited!
-Rebooting the machine ...
-Machine::reboot()
-QEMU: Terminated
+Segment test
+My address space's page directory is located at 0x000000023fdef000
+Creating two extra data segments:
+  extra segment 1 => 100 bytes, done!
+  extra segment 2 => 200 bytes, done!
+Attaching segments:
+Address :/
+Attach Return: 0x0000000080200000!!!!
+Address :/
+Attach Return: 0x0000000080400000!!!!
+  extra segment 1 => 0x0000000080200000 done!
+  extra segment 2 => 0x0000000080400000 done!
+Clearing segments:  done!
+Detaching segments:QEMU: Terminated
 

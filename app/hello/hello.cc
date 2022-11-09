@@ -1,53 +1,64 @@
 #include <utility/ostream.h>
+#include <memory.h>
 
 using namespace EPOS;
 
 OStream cout;
 
+
+#ifdef __cortex_m__
+const unsigned ES1_SIZE = 10000;
+const unsigned ES2_SIZE = 100000;
+#else
+const unsigned ES1_SIZE = 100;
+const unsigned ES2_SIZE = 200;
+#endif
+
 int main()
 {
-  cout << "Hello world!" << endl;
+    OStream cout;
 
-  
+    cout << "Segment test" << endl;
 
-  // char x[3] = "ab";
-  // //
-  // cout << "x = " << x << endl;
-  //
-  // char x2[3] = "b";
-  // //
-  // cout << "x = " << x2 << endl;
-  // //
-  // cout <<"x address: " << &x << endl;
-    //
-    // char str[512] = "batata";
-    //
-    //
-    // cout << "str = " << str << endl;
-    //
-    // cout << "str address: " << &str << endl;
-    //
-    // char str2[512];
-    //
-    // cout << "str 2 " << &str2 << endl;
-    //
-    // int b = 5;
-    //
-    // cout << "b = " << b << endl;
-    //
-    // cout << "b address" << &b << endl;
-    // char bla = 'a';
-    // char sla = 'b';
-    // cout << &bla << endl;
-    // cout << &sla << endl;
-    // int size = 65440; //65456
-    // char y[size] = "b";
-    //
-    // cout << "y address" << &y << endl;
+    if(Traits<Build>::MODEL == Traits<Build>::SiFive_E) {
+        cout << "This test requires multiheap and the SiFive-E doesn't have enough memory to run it!" << endl;
+        return 0;
+    }
 
-    // char * b = reinterpret_cast<char*>(0x000000027ffdfff8);
-    // cout << "b???" << *b << endl;
+    cout << "My address space's page directory is located at " << reinterpret_cast<void *>(MMU::current()) << "" << endl;
+    Address_Space self(MMU::current());
 
+    cout << "Creating two extra data segments:" << endl;
+    assert(ES1_SIZE != 0);
+    assert(ES2_SIZE != 0);
+
+    Segment * es1 = new Segment(ES1_SIZE, Segment::Flags::SYS);
+    Segment * es2 = new Segment(ES2_SIZE, Segment::Flags::SYS);
+    cout << "  extra segment 1 => " << ES1_SIZE << " bytes, done!" << endl;
+    cout << "  extra segment 2 => " << ES2_SIZE << " bytes, done!" << endl;
+
+    cout << "Attaching segments:" << endl;
+    CPU::Log_Addr * extra1 = self.attach(es1);
+    CPU::Log_Addr * extra2 = self.attach(es2);
+    cout << "  extra segment 1 => " << extra1 << " done!" << endl;
+    cout << "  extra segment 2 => " << extra2 << " done!" << endl;
+
+    cout << "Clearing segments:";
+    memset(extra1, 0, ES1_SIZE);
+    memset(extra2, 0, ES2_SIZE);
+    cout << "  done!" << endl;
+
+    cout << "Detaching segments:";
+    self.detach(es1);
+    self.detach(es2);
+    cout << "  done!" << endl;
+
+    cout << "Deleting segments:";
+    delete es1;
+    delete es2;
+    cout << "  done!" << endl;
+
+    cout << "I'm done, bye!" << endl;
 
     return 0;
 }

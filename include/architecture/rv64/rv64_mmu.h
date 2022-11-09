@@ -109,9 +109,21 @@ public:
         // from 0 to bytes % PAGE_SIZE
         //pts = number of page_tables
         //pages = number of pages
-        Chunk(unsigned int bytes, Flags flags)
-        : _from(0), _to(pages(bytes)), _pts(page_tables(_to - _from)), _bytes(bytes), _flags(RV64_Flags(flags)), _pt(calloc(_pts)) {
-            _pt->map(_flags, _from, _to);
+        Chunk(unsigned int bytes, Flags flags) {
+
+            _from = 0;
+            _to = pages(bytes);
+            _pts = page_tables(_to - _from);
+            _bytes = bytes;
+            _flags = RV64_Flags(flags);
+            _pt = calloc(_pts);
+            for (unsigned int i = 0; i < _pts; i++) {
+              if (i == _pts-1)
+                (_pt + (i * PAGE_SIZE))->map(_flags, _from, _to % 512);
+              else
+                (_pt + (i * PAGE_SIZE))->map(_flags, _from, 512);
+            }
+            // _pt->map(_flags, _from, _to);
         }
 
         ~Chunk() {
@@ -142,7 +154,6 @@ public:
     {
     public:
         Directory() : _pd(phy2log(calloc(1))), _free(true) {
-            assert(1 == 0);
             for(unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++){
               (*_pd)[i] = (*_master)[i];
             }
@@ -162,7 +173,7 @@ public:
             for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_1 - chunk.pts(); j++)
               if(attach(i, j, chunk.pt(), chunk.pts(), RV64_Flags::V)) {
                 Log_Addr addr = i << (DIRECTORY_SHIFT_LVL_2) | j << DIRECTORY_SHIFT_LVL_1;
-                db<MMU>(WRN) << "Attach Return: " << addr << endl;
+                db<MMU>(WRN) << "Attach Return: " << addr << "!!!!" << endl;
                 return addr;
               }
           db<MMU>(WRN) << "Achou errado XD" << endl;
@@ -174,26 +185,22 @@ public:
       Log_Addr attach(const Chunk & chunk, const Log_Addr & addr) {
           unsigned int lvl2 = directory_lvl_2(addr);
           unsigned int lvl1 = directory_lvl_1(addr);
-          db<MMU>(WRN) << "Logical Address: " << addr << endl;
-          db<MMU>(WRN) << "Level 2: " << lvl2 << endl;
-          db<MMU>(WRN) << "Level 1: " << lvl1 << endl;
-          db<MMU>(WRN) << "Goodbye, World! :(" << endl;
           if(!attach(lvl2, lvl1, chunk.pt(), chunk.pts(), RV64_Flags::V))
               return Log_Addr(false);
 
-          Log_Addr ad = lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
-          assert(addr == ad);
-          db<MMU>(WRN) << "Address :)" << ad << endl;
-          return ad;
+          return lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
       }
 
-      void detach(const Chunk & chunk) {
-          for(unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++) {
-            for(unsigned int j = 0; j < PD_ENTRIES_LVL_2; j++)
-              if(indexes((*_pd)[i][j]) == indexes(phy2pde(chunk.pt()))) {
+      void detach(const Chunk & chunk, unsigned int lvl2 = directory_lvl_2(APP_LOW), unsigned int lvl1 = directory_lvl_2(APP_LOW)) {
+
+          for(unsigned int i = lvl2; i < PD_ENTRIES_LVL_2; i++) {
+            Page_Directory * pd1 = new((void*)(pte2phy((*_pd)[i]))) Page_Directory();
+            for(unsigned int j = lvl1; j < PD_ENTRIES_LVL_1; j++) {
+              if(indexes(pte2phy((*pd1)[j])) == indexes(phy2log(chunk.pt()))) {
                   detach(i, j, chunk.pt(), chunk.pts());
                   return;
               }
+            }
           }
           db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ") failed!" << endl;
       }
@@ -201,11 +208,12 @@ public:
       void detach(const Chunk & chunk, Log_Addr addr) {
           unsigned int lvl2 = directory_lvl_2(addr);
           unsigned int lvl1 = directory_lvl_1(addr);
-          if(indexes((*_pd)[lvl2][lvl1]) != indexes(chunk.pt())) {
+          Page_Directory * pd1 = new((void*)(pte2phy((*_pd)[lvl2]))) Page_Directory();
+          if(indexes(pte2phy((*pd1)[lvl1])) != indexes(chunk.pt())) {
               db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ",addr=" << addr << ") failed!" << endl;
               return;
           }
-          detach(lvl1, lvl2, chunk.pt(), chunk.pts());
+          detach(lvl2, lvl1, chunk.pt(), chunk.pts());
       }
 
 
@@ -215,24 +223,25 @@ public:
 
       bool attach(unsigned int lvl2, unsigned int lvl1, const Page_Table * pt, unsigned int n, RV64_Flags flags) {
 
-          db<MMU>(WRN) << "Inner Attach Address: " << pt << " n = " << n << endl;
-          Page_Directory * pd_aux = new((void*)(pte2phy((*_pd)[lvl2]))) Page_Directory();
+          Page_Directory * pd1 = new((void*)(pte2phy((*_pd)[lvl2]))) Page_Directory();
           for(unsigned int i = lvl1; i < lvl1 + n; i++) {
-              Page_Table * pt_aux = (*pd_aux)[i];
-              if((*pt_aux)[i])
+              Page_Table * pt0 = (*pd1)[i];
+              if((*pt0)[i])
                   return false;
           }
           for(unsigned int i = lvl1; i < lvl1 + n; i++, pt++) {
-              Page_Table * pt_aux = (*pd_aux)[i];
-              (*pt_aux)[i] = phy2pte(Phy_Addr(pt), flags);
+              Page_Table * pt0 = (*pd1)[i];
+               (*pt0)[i] = phy2pte(Phy_Addr(pt), flags);
           }
 
             return true;
         }
 
         void detach(unsigned int lvl2, unsigned int lvl1, Page_Table * pt,  unsigned int n) {
+            Page_Directory * pd1 = new((void*)(pte2phy((*_pd)[lvl2]))) Page_Directory();
             for (unsigned int i = lvl1; i < lvl1 + n; i++) {
-              (*pt)[lvl2][i] = 0;
+              Page_Table * pt0 = (*pd1)[i];
+              (*pt0)[i] = 0;
             }
         }
 

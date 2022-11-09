@@ -46,6 +46,8 @@ private:
     // Physical memory map
     static const unsigned long RAM_BASE = Memory_Map::RAM_BASE;
     static const unsigned long RAM_TOP = Memory_Map::RAM_TOP;
+    static const unsigned long APP_LOW = Memory_Map::APP_LOW;
+    static const unsigned long APP_HIGH = Memory_Map::APP_HIGH;
     static const unsigned long MIO_BASE = Memory_Map::MIO_BASE;
     static const unsigned long MIO_TOP = Memory_Map::MIO_TOP;
     static const unsigned long FREE_BASE = Memory_Map::FREE_BASE;
@@ -73,7 +75,6 @@ private:
     void enable_paging();
     void init_mmu();
     void call_next();
-    unsigned long *add_to_pointer(unsigned long *pointer, unsigned long add, unsigned long mask);
 
 private:
     System_Info *si;
@@ -137,49 +138,6 @@ void Setup::say_hi()
     kout << endl;
 }
 
-// TODO Testar os endereços para ver se às páginas estão espaçadas corretamente.
-void Setup::enable_paging()
-{
-    unsigned int PAGE_SIZE = 4096;
-    unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
-    unsigned long pages = MMU::pages(RAM_TOP);
-
-    unsigned total_pdes = MMU::page_tables(pages);
-    unsigned int PD_ENTRIES_LVL_2 = total_pdes / PT_ENTRIES;
-    unsigned int PD_ENTRIES_LVL_1 = PT_ENTRIES;
-    unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
-
-    unsigned long PD2_ADDR = PAGE_TABLES;
-
-    Page_Directory *master = new ((void *)PD2_ADDR) Page_Directory();
-    PD2_ADDR += PAGE_SIZE;
-
-    //master->remap(PD2_ADDR, RV64_Flags::PD, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
-    master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
-
-    for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
-    {
-        Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
-        PD2_ADDR += PAGE_SIZE;
-        pd_lv1->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
-
-        for (unsigned long j = 0; j < PD_ENTRIES_LVL_1; j++)
-        {
-            Page_Table *pt_lv0 = new ((void *)PD2_ADDR) Page_Table();
-            PD2_ADDR += PAGE_SIZE;
-            pt_lv0->remap((PT_ENTRIES_LVL_0 * PAGE_SIZE * (j + (i * PD_ENTRIES_LVL_1))), RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
-        }
-    }
-
-    db<Setup>(INF) << "Set SATP" << endl;
-    // Set SATP and enable paging
-    CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
-
-    db<Setup>(INF) << "Flush TLB" << endl;
-    // Flush TLB to ensure we've got the right memory organization
-    MMU::flush_tlb();
-}
-
 void Setup::init_mmu()
 {
 
@@ -202,16 +160,20 @@ void Setup::init_mmu()
     kout << "Master Base Address: " << PD2_ADDR << endl;
     PD2_ADDR += PAGE_SIZE;
 
-// M|PD|PD|512|512
     //master->remap(PD2_ADDR, RV64_Flags::PD, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
+    // unsigned int n = MMU::directory_lvl_2(APP_LOW);
     master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2);
+    //ta errado! fazer o remap de x - x + PD_ENTRIES_LVL_2 (x = directory_lvl_2(algum enderço -provavelmente PD2_ADDR -))
+
 
     Phy_Addr PD1_ADDR = PD2_ADDR + PD_ENTRIES_LVL_2 * PAGE_SIZE;
 
+    // n = MMU::directory_lvl_1(APP_LOW);
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
     {
         Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
         PD2_ADDR += PAGE_SIZE;
+
         pd_lv1->remap(PD1_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
         PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
     }
@@ -227,7 +189,7 @@ void Setup::init_mmu()
             PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
         }
     }
-    // kout << "Page Directory LVL1 Address" << PD1_ADDR << endl;
+    kout << "Page Directory LVL1 Address" << PD1_ADDR << endl;
 
     kout << "Page Directory End Address" << PD2_ADDR << endl;
 

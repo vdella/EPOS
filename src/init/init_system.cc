@@ -26,6 +26,7 @@ public:
         if(Traits<System>::multiheap) {
             db<Init>(INF) << "MULTIHEAP: Initializing system's heap: " << endl;
             db<Init>(WRN) << "Master Address: " << MMU::current() << endl;
+            db<Init>(WRN) << "Preheap: " << (&System::_preheap[0]) << " Size: " << HEAP_SIZE << endl;
 
             System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
             char * heap;
