@@ -47,9 +47,10 @@ public:
 
         // Logical Address Space
         APP_LOW         = Traits<Machine>::APP_LOW,
-        APP_HIGH        = Traits<Machine>::APP_HIGH,
         APP_CODE        = Traits<Machine>::APP_CODE,
         APP_DATA        = Traits<Machine>::APP_DATA,
+        APP_HEAP        = Traits<Machine>::APP_HEAP,
+        APP_HIGH        = Traits<Machine>::APP_HIGH,
 
         INIT            = Traits<Machine>::INIT,
 
