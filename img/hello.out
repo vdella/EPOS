@@ -41,5 +41,11 @@ Attach Return: 0x0000000080400000!!!!
   extra segment 1 => 0x0000000080200000 done!
   extra segment 2 => 0x0000000080400000 done!
 Clearing segments:  done!
-Detaching segments:QEMU: Terminated
-
+Detaching segments:MMU::Directory::detach(pt=0x00000000800efee7) failed!
+MMU::Directory::detach(pt=0x00000000800efee5) failed!
+  done!
+Deleting segments:  done!
+I'm done, bye!
+The last thread has exited!
+Rebooting the machine ...
+Machine::reboot()

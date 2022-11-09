@@ -47,6 +47,7 @@ int main()
     memset(extra1, 0, ES1_SIZE);
     memset(extra2, 0, ES2_SIZE);
     cout << "  done!" << endl;
+    
 
     cout << "Detaching segments:";
     self.detach(es1);
