@@ -33,7 +33,7 @@ void Thread::constructor_prologue(unsigned int stack_size)
     // After Init_Application, newly created Threads will have their stacks located at the App's Heap.
     // Lastly, the first application has an extra stack for the idle Thread.
     if (this->_link.rank() == MAIN) {
-        _stack =  reinterpret_cast<char *>(Traits<Application>::APP_HEAP - 4 - (16 * 1024)); 
+        _stack =  reinterpret_cast<char *>(Traits<Application>::APP_HEAP - 8 - (16 * 1024));  // TODO check math.
     } else if (this->_link.rank() == IDLE) {
         _stack = new (SYSTEM) char[stack_size];
     } else {
@@ -42,7 +42,7 @@ void Thread::constructor_prologue(unsigned int stack_size)
 }
 
 
-void Thread::constructor_epilogue(const Log_Addr & entry, unsigned int stack_size)
+void Thread::constructor_epilogue(const Log_Addr entry, unsigned int stack_size)
 {
     db<Thread>(TRC) << "Thread(entry=" << entry
                     << ",state=" << _state
