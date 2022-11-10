@@ -166,9 +166,12 @@ void Setup::init_mmu()
     //ta errado! fazer o remap de x - x + PD_ENTRIES_LVL_2 (x = directory_lvl_2(algum enderço -provavelmente PD2_ADDR -))
 
 
-    Phy_Addr PD1_ADDR = PD2_ADDR + PD_ENTRIES_LVL_2 * PAGE_SIZE;
+    Phy_Addr PD1_ADDR = PD2_ADDR + PT_ENTRIES * PAGE_SIZE;
+    Phy_Addr PT0_ADDR = PD1_ADDR;
+    // Phy_Addr PD1_ADDR = PD2_ADDR + PD_ENTRIES_LVL_2 * PAGE_SIZE;
 
     // n = MMU::directory_lvl_1(APP_LOW);
+    //TODO - outro loop pras pds livres.
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
     {
         Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
@@ -183,8 +186,8 @@ void Setup::init_mmu()
     {
         for (unsigned long j = 0; j < PD_ENTRIES_LVL_1; j++)
         {
-            Page_Table *pt_lv0 = new ((void *)PD2_ADDR) Page_Table();
-            PD2_ADDR += PAGE_SIZE;
+            Page_Table *pt_lv0 = new ((void *)PT0_ADDR) Page_Table();
+            PT0_ADDR += PAGE_SIZE;
             pt_lv0->remap(PD1_ADDR, RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
             PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
         }

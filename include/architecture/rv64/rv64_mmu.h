@@ -145,6 +145,7 @@ public:
         unsigned int pts() const { return _pts; }
         Page_Table *pt() const { return _pt; }
         unsigned int size() const { return _bytes; }
+        RV64_Flags flags() const {return _flags;}
         int resize(unsigned int amount) { return 0; }
 
     private:
@@ -186,7 +187,7 @@ public:
         {
             for (unsigned int i = lvl2; i < PD_ENTRIES_LVL_2; i++)
                 for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_1 - chunk.pts(); j++)
-                    if (attach(i, j, chunk.pt(), chunk.pts(), RV64_Flags::V))
+                    if (attach(i, j, chunk.pt(), chunk.pts(), chunk.flags()))
                     {
                         Log_Addr addr = i << (DIRECTORY_SHIFT_LVL_2) | j << DIRECTORY_SHIFT_LVL_1;
                         db<MMU>(WRN) << "Attach Return: " << addr << "!!!!" << endl;
@@ -200,7 +201,7 @@ public:
         {
             unsigned int lvl2 = directory_lvl_2(addr);
             unsigned int lvl1 = directory_lvl_1(addr);
-            if (!attach(lvl2, lvl1, chunk.pt(), chunk.pts(), RV64_Flags::V))
+            if (!attach(lvl2, lvl1, chunk.pt(), chunk.pts(), chunk.flags()))
                 return Log_Addr(false);
 
             return lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
@@ -249,11 +250,15 @@ public:
         {
             if ((*_pd)[lvl2])
             {
+
                 Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[lvl2]))) Page_Directory();
+                db<MMU>(WRN) << "lvl2: " << lvl2 << endl;
+                db<MMU>(WRN) << "lvl1: " << lvl1 << endl;
+
 
                 for (unsigned int i = lvl1; i < lvl1 + n; i++)
                 {
-                    db<MMU>(WRN) << "pd1: " << (*pd1)[i] << endl;
+
                     // Page_Table *pt0 = new ((void *)(pte2phy((*pd1)[i]))) Page_Table();
                     if ((*pd1)[i])
                         return false;
@@ -265,7 +270,13 @@ public:
                 }
                 return true;
             }
-            return false;
+
+            Page_Directory * pd1 = new ((void*)(_pd + lvl2 * PAGE_SIZE)) Page_Directory();
+            for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
+            {
+              (*pd1)[i] = phy2pte(Phy_Addr(pt), flags);
+            }
+            return true;
         }
 
         void detach(unsigned int lvl2, unsigned int lvl1, Page_Table *pt, unsigned int n)
