@@ -5,7 +5,6 @@ using namespace EPOS;
 
 OStream cout;
 
-
 #ifdef __cortex_m__
 const unsigned ES1_SIZE = 10000;
 const unsigned ES2_SIZE = 100000;
@@ -20,7 +19,8 @@ int main()
 
     cout << "Segment test" << endl;
 
-    if(Traits<Build>::MODEL == Traits<Build>::SiFive_E) {
+    if (Traits<Build>::MODEL == Traits<Build>::SiFive_E)
+    {
         cout << "This test requires multiheap and the SiFive-E doesn't have enough memory to run it!" << endl;
         return 0;
     }
@@ -32,24 +32,23 @@ int main()
     assert(ES1_SIZE != 0);
     assert(ES2_SIZE != 0);
 
-    Segment * es1 = new Segment(ES1_SIZE, Segment::Flags::SYS);
-    Segment * es2 = new Segment(ES2_SIZE, Segment::Flags::SYS);
+    Segment *es1 = new Segment(ES1_SIZE, Segment::Flags::SYS);
+    Segment *es2 = new Segment(ES2_SIZE, Segment::Flags::SYS);
     cout << "  extra segment 1 => " << ES1_SIZE << " bytes, done!" << endl;
     cout << "  extra segment 2 => " << ES2_SIZE << " bytes, done!" << endl;
 
     cout << "Attaching segments:" << endl;
-    CPU::Log_Addr * extra1 = self.attach(es1);
-    CPU::Log_Addr * extra2 = self.attach(es2);
+    CPU::Log_Addr *extra1 = self.attach(es1);
+    CPU::Log_Addr *extra2 = self.attach(es2);
     cout << "  extra segment 1 => " << extra1 << " done!" << endl;
     cout << "  extra segment 2 => " << extra2 << " done!" << endl;
 
-    cout << "Clearing segments:";
-    memset(extra1, 0, ES1_SIZE);
-    memset(extra2, 0, ES2_SIZE);
-    cout << "  done!" << endl;
-    
+    //cout << "Clearing segments:" << endl;
+    //memset(extra1, 0, ES1_SIZE);
+    //memset(extra2, 0, ES2_SIZE);
+    //cout << "  done!" << endl;
 
-    cout << "Detaching segments:";
+    cout << "Detaching segments:" << endl;
     self.detach(es1);
     self.detach(es2);
     cout << "  done!" << endl;

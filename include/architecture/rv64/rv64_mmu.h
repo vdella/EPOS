@@ -124,6 +124,7 @@ public:
             _bytes = bytes;
             _flags = RV64_Flags(flags);
             _pt = calloc(_pts);
+            db<MMU>(WRN) << "Chunk pt " << _pt << endl;
             for (unsigned int i = 0; i < _pts; i++)
             {
                 if (i == _pts - 1)
@@ -183,7 +184,6 @@ public:
         // Attach Chunk's PT into the Address Space and return the Page Directory base address.
         Log_Addr attach(const Chunk &chunk, unsigned int lvl2 = directory_lvl_2(APP_LOW), unsigned int lvl1 = directory_lvl_1(APP_LOW))
         {
-            db<MMU>(WRN) << "Address :/" << endl;
             for (unsigned int i = lvl2; i < PD_ENTRIES_LVL_2; i++)
                 for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_1 - chunk.pts(); j++)
                     if (attach(i, j, chunk.pt(), chunk.pts(), RV64_Flags::V))
@@ -192,7 +192,6 @@ public:
                         db<MMU>(WRN) << "Attach Return: " << addr << "!!!!" << endl;
                         return addr;
                     }
-            db<MMU>(WRN) << "Achou errado XD" << endl;
             return false;
         }
 
@@ -216,13 +215,10 @@ public:
                     Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[i]))) Page_Directory();
                     for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_1; j++)
                     {
-                        if ((*pd1)[j])
+                        if (indexes(pte2phy((*pd1)[j])) == indexes(phy2log(chunk.pt())))
                         {
-                            if (indexes(pte2phy((*pd1)[j])) == indexes(phy2log(chunk.pt())))
-                            {
-                                detach(i, j, chunk.pt(), chunk.pts());
-                                return;
-                            }
+                            detach(i, j, chunk.pt(), chunk.pts());
+                            return;
                         }
                     }
                 }
@@ -251,21 +247,25 @@ public:
     private:
         bool attach(unsigned int lvl2, unsigned int lvl1, const Page_Table *pt, unsigned int n, RV64_Flags flags)
         {
-
-            Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[lvl2]))) Page_Directory();
-            for (unsigned int i = lvl1; i < lvl1 + n; i++)
+            if ((*_pd)[lvl2])
             {
-                Page_Table *pt0 = (*pd1)[i];
-                if ((*pt0)[i])
-                    return false;
-            }
-            for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
-            {
-                Page_Table *pt0 = (*pd1)[i];
-                (*pt0)[i] = phy2pte(Phy_Addr(pt), flags);
-            }
+                Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[lvl2]))) Page_Directory();
 
-            return true;
+                for (unsigned int i = lvl1; i < lvl1 + n; i++)
+                {
+                    db<MMU>(WRN) << "pd1: " << (*pd1)[i] << endl;
+                    // Page_Table *pt0 = new ((void *)(pte2phy((*pd1)[i]))) Page_Table();
+                    if ((*pd1)[i])
+                        return false;
+                }
+                for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
+                {
+                    // Page_Table *pt0 = (*pd1)[i];
+                    (*pd1)[i] = phy2pte(Phy_Addr(pt), flags);
+                }
+                return true;
+            }
+            return false;
         }
 
         void detach(unsigned int lvl2, unsigned int lvl1, Page_Table *pt, unsigned int n)
