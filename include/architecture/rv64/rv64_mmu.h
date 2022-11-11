@@ -211,14 +211,11 @@ public:
         {
             for (unsigned int i = lvl2; i < PD_ENTRIES_LVL_2; i++)
             {
-                // db<MMU>(WRN) << "lvl2: " << i << endl;
                 if ((*_pd)[i])
                 {
                     Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[i]))) Page_Directory();
                     for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_1; j++)
                     {
-                        // db<MMU>(WRN) << "PN2: " << i << endl;
-                        // db<MMU>(WRN) << "PN1: " << j << endl;
                         if (indexes(pte2phy((*pd1)[j])) == indexes(phy2log(chunk.pt())))
                         {
                             detach(i, j, chunk.pt(), chunk.pts());
@@ -235,9 +232,7 @@ public:
             db<MMU>(WRN) << "Addr " << addr << endl;
             unsigned int lvl2 = directory_lvl_2(addr);
             unsigned int lvl1 = directory_lvl_1(addr);
-            db<MMU>(WRN) << "Cheguei " << endl;
             Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[lvl2]))) Page_Directory();
-            db<MMU>(WRN) << "Cheguei 2" << endl;
             if (indexes(pte2phy((*pd1)[lvl1])) != indexes(chunk.pt()))
             {
                 db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ",addr=" << addr << ") failed!" << endl;
@@ -272,11 +267,6 @@ public:
             Page_Directory * pd1 = new ((void*)(_pd + lvl2 * PAGE_SIZE)) Page_Directory();
             _pd->remap(pd1, flags, lvl2, lvl2+1);
             return attach(lvl2, lvl1, pt, n, flags);
-            // for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
-            // {
-            //   (*pd1)[i] = phy2pte(Phy_Addr(pt), flags);
-            // }
-            // return true;
         }
 
         void detach(unsigned int lvl2, unsigned int lvl1, Page_Table *pt, unsigned int n)
@@ -349,13 +339,6 @@ public:
     }
 
     static unsigned int allocable() { return _free.head() ? _free.head()->size() : 0; }
-
-    // return _master;
-    //  static Page_Directory *volatile current()
-    //  {
-    //      db<MMU>(WRN) << "Master: " << _master << endl;
-    //      return _master;
-    //  }
 
     static Page_Directory *volatile current() { return static_cast<Page_Directory *volatile>(phy2log(CPU::pdp())); }
 

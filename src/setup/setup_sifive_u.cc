@@ -72,7 +72,6 @@ public:
 
 private:
     void say_hi();
-    void enable_paging();
     void init_mmu();
     void call_next();
 
@@ -95,8 +94,7 @@ Setup::Setup()
 
     // Print basic facts about this EPOS instance
     say_hi();
-
-    // enable_paging();
+    //build page tables
     init_mmu();
 
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
@@ -141,7 +139,7 @@ void Setup::say_hi()
 void Setup::init_mmu()
 {
 
-    unsigned int PAGE_SIZE = 4096;
+    unsigned int PAGE_SIZE = 4 * 1024;
     unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
     unsigned long pages = MMU::pages(RAM_TOP + 1);
 
@@ -189,7 +187,6 @@ void Setup::init_mmu()
 
     kout << "Page Directory End Address" << PD2_ADDR << endl;
 
-//INT MAST 100 not and integer const
     db<Setup>(INF) << "Set SATP" << endl;
     // Set SATP and enable paging
     CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
