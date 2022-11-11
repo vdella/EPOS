@@ -34,9 +34,9 @@ Segment test
 My address space's page directory is located at 0x000000023fdef000
 Creating two extra data segments:
 Chunk pt 0x00000000800efee7
-Chunk pt 0x00000000800efee3
-  extra segment 1 => 10000 bytes, done!
-  extra segment 2 => 100000 bytes, done!
+Chunk pt 0x00000000800efee5
+  extra segment 1 => 100 bytes, done!
+  extra segment 2 => 200 bytes, done!
 Attaching segments:
 lvl2: 10
 lvl1: 1
@@ -52,5 +52,8 @@ Detaching segments:
   done!
 Deleting segments:  done!
 I'm done, bye!
+The last thread has exited!
+Rebooting the machine ...
+Machine::reboot()
 QEMU: Terminated
 

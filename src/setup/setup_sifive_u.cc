@@ -160,18 +160,11 @@ void Setup::init_mmu()
     kout << "Master Base Address: " << PD2_ADDR << endl;
     PD2_ADDR += PAGE_SIZE;
 
-    //master->remap(PD2_ADDR, RV64_Flags::PD, 0, PD_ENTRIES_LVL_2, ((PAGE_SIZE * PT_ENTRIES) + PAGE_SIZE));
-    // unsigned int n = MMU::directory_lvl_2(APP_LOW);
     master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2);
-    //ta errado! fazer o remap de x - x + PD_ENTRIES_LVL_2 (x = directory_lvl_2(algum enderço -provavelmente PD2_ADDR -))
-
 
     Phy_Addr PD1_ADDR = PD2_ADDR + PT_ENTRIES * PAGE_SIZE;
     Phy_Addr PT0_ADDR = PD1_ADDR;
-    // Phy_Addr PD1_ADDR = PD2_ADDR + PD_ENTRIES_LVL_2 * PAGE_SIZE;
 
-    // n = MMU::directory_lvl_1(APP_LOW);
-    //TODO - outro loop pras pds livres.
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
     {
         Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
