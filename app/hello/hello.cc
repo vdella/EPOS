@@ -6,11 +6,11 @@ using namespace EPOS;
 OStream cout;
 
 #ifdef __cortex_m__
-const unsigned ES1_SIZE = 10000;
-const unsigned ES2_SIZE = 100000;
-#else
 const unsigned ES1_SIZE = 100;
 const unsigned ES2_SIZE = 200;
+#else
+const unsigned ES1_SIZE = 10000;
+const unsigned ES2_SIZE = 100000;
 #endif
 
 int main()
@@ -43,10 +43,10 @@ int main()
     cout << "  extra segment 1 => " << extra1 << " done!" << endl;
     cout << "  extra segment 2 => " << extra2 << " done!" << endl;
 
-    //cout << "Clearing segments:" << endl;
-    //memset(extra1, 0, ES1_SIZE);
-    //memset(extra2, 0, ES2_SIZE);
-    //cout << "  done!" << endl;
+    cout << "Clearing segments:" << endl;
+    memset(extra1, 0, ES1_SIZE);
+    memset(extra2, 0, ES2_SIZE);
+    cout << "  done!" << endl;
 
     cout << "Detaching segments:" << endl;
     self.detach(es1);
