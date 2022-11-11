@@ -94,7 +94,7 @@ public:
 
     enum {
         //INT_SYS_TIMER = EXCS + IRQ_MAC_TIMER
-        HARD_INT = CPU::EXCEPTIONS,    //SUS
+        HARD_INT = CPU::EXCEPTIONS,
         INT_SYS_TIMER = HARD_INT + IRQ_SUP_TIMER,
         INT_RESCHEDULER = HARD_INT + IRQ_SUP_SOFT, // An IPI is mapped to the machine with mcause set to IRQ_MAC_SOFT
         INT_MASK = CPU::Reg(1UL << 63) - 1

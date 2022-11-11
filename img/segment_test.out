@@ -1,0 +1,59 @@
+
+
+
+
+This is EPOS!
+
+Setting up this machine as follows: 
+  Mode:         library
+  Processor:    1 x RV64 at 50 MHz (BUS clock = 50 MHz)
+  Machine:      SiFive-U
+  Memory:       8192 MB [0x0000000080000000:0x000000027fffffff]
+  User memory:  8191 MB [0x0000000080000000:0x000000027fff0000]
+  I/O space:    512 MB [0x0000000000000000:0x000000001fffffff]
+  Node Id:      will get from the network!
+  Position:     will get from the network!
+  Extras:       0 bytes
+
+Total Pages: 2621440
+Total Page Tables: 5120
+Master Base Address: 0x000000023fdef000
+Page Directory LVL1 Address0x0000000280000000
+Page Directory End Address0x000000023fdfa000
+Initializing the architecture: 
+Initializing system's heap: 
+Master Address: 0x000000023fdef000
+Preheap:  Size: 1114112
+Chunk pt 0x00000000801fffef
+lvl2: 10
+lvl1: 0
+Attach Return: 0x0000000080000000!!!!
+Heap: 
+Initializing the machine: 
+Segment test
+My address space's page directory is located at 0x000000023fdef000
+Creating two extra data segments:
+Chunk pt 0x00000000800efee7
+Chunk pt 0x00000000800efee5
+  extra segment 1 => 100 bytes, done!
+  extra segment 2 => 200 bytes, done!
+Attaching segments:
+lvl2: 10
+lvl1: 1
+Attach Return: 0x0000000080200000!!!!
+lvl2: 10
+lvl1: 2
+Attach Return: 0x0000000080400000!!!!
+  extra segment 1 => 0x0000000080200000 done!
+  extra segment 2 => 0x0000000080400000 done!
+Clearing segments:
+  done!
+Detaching segments:
+  done!
+Deleting segments:  done!
+I'm done, bye!
+The last thread has exited!
+Rebooting the machine ...
+Machine::reboot()
+QEMU: Terminated
+
