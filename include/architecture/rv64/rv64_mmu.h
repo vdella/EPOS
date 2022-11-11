@@ -255,8 +255,7 @@ public:
                     if ((*pd1)[i])
                         return false;
                 }
-                db<MMU>(WRN) << "lvl2: " << lvl2 << endl;
-                db<MMU>(WRN) << "lvl1: " << lvl1 << endl;
+
                 for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
                 {
                     (*pd1)[i] = phy2pte(Phy_Addr(pt), flags);
