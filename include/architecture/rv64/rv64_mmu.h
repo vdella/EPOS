@@ -154,6 +154,10 @@ public:
 
         Page_Table * pd() const { return _pd; }
 
+        void activate() {
+          CPU::satp((1UL << 63) | (Phy_Addr)_pd >> 12);
+          //ASM("sfence.vma");
+        }
 
       //Attach Chunk's PT into the Address Space and return the Page Directory base address.
       Log_Addr attach(const Chunk & chunk, unsigned int lvl2 = directory_lvl_2(APP_LOW), unsigned int lvl1 = directory_lvl_1(APP_LOW)) {

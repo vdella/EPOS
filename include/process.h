@@ -194,67 +194,67 @@ public:
     bool has_idle;
 
     Task(Segment *cs, Segment *ds)
-        : addr_space(new (SYSTEM) Address_Space), 
-          code_segment(cs), 
-          data_segment(ds), 
-          code_address(addr_space->attach(code_segment, Memory_Map::APP_CODE)), 
-          data_address(addr_space->attach(data_segment, Memory_Map::APP_DATA))
+        : _as(new (SYSTEM) Address_Space),
+          _cs(cs),
+          _ds(ds),
+          _code(_as->attach(cs, Memory_Map::APP_CODE)),
+          _data(_as->attach(ds, Memory_Map::APP_DATA))
     {
-        db<Task>(TRC) << "Task(as=" << addr_space << ",cs=" << code_segment << ",ds=" << data_segment << ",code=" << code_address << ",data=" << data_address << ") => " << this << endl;
+        db<Task>(TRC) << "Task(as=" << _as << ",cs=" << _cs << ",ds=" << _ds << ",code=" << _code << ",data=" << _data << ") => " << this << endl;
 
         has_idle = false;
     }
 
     Task(Address_Space *as, Segment *cs, Segment *ds)
-        : addr_space(as), 
-          code_segment(cs), 
-          data_segment(ds), 
-          code_address(addr_space->attach(code_segment, Memory_Map::APPcode_address)), 
-          data_address(addr_space->attach(data_segment, Memory_Map::APPdata_address))
+        : _as(as),
+          _cs(cs),
+          _ds(ds),
+          _code(as->attach(cs, Memory_Map::APP_CODE)),
+          _data(as->attach(ds, Memory_Map::APP_DATA))
     {
-        db<Task>(TRC) << "Task(as=" << addr_space << ",cs=" << code_segment << ",ds=" << data_segment << ",code=" << code_address << ",data=" << data_address << ") => " << this << endl;
+        db<Task>(TRC) << "Task(as=" << _as << ",cs=" << _cs << ",ds=" << _ds << ",code=" << _code << ",data=" << _data << ") => " << this << endl;
 
         has_idle = false;
     }
 
     ~Task()
     {
-        addr_space->detach(code_segment, Memory_Map::APP_CODE);
-        addr_space->detach(data_segment, Memory_Map::APP_DATA);
+        _as->detach(_cs, Memory_Map::APP_CODE);
+        _as->detach(_ds, Memory_Map::APP_DATA);
 
-        delete code_segment;
-        delete data_segment;
-        
-        delete addr_space;
+        delete _cs;
+        delete _ds;
+
+        delete _as;
     }
 
-    static void activate(volatile Task *t)
+    static void activate(volatile Task * t)
     {
-        Task::_active = t;
-        t->addr_space->activate();
+      Task::_active = t;
+      t->_as->activate();
     }
 
     static unsigned int get_active_pd()
     {
-        return Task::_active->addr_space->pd();
+        return Task::_active->_as->pd();
     }
 
-    Address_Space *address_space() const { return addr_space; }
+    Address_Space * address_space() const { return _as; }
 
-    Segment *code_segment() const { return code_segment; }
-    Segment *data_segment() const { return data_segment; }
+    Segment * cs() const { return _cs; }
+    Segment * ds() const { return _ds; }
 
-    Log_Addr code() const { return code_address; }
-    Log_Addr data() const { return data_address; }
+    Log_Addr code() const { return _code; }
+    Log_Addr data() const { return _data; }
 
 private:
-    Address_Space *addr_space;
+    Address_Space * _as;
 
-    Segment *code_segment;
-    Segment *data_segment;
+    Segment * _cs;
+    Segment * _ds;
 
-    Log_Addr code_address;
-    Log_Addr data_address;
+    Log_Addr _code;
+    Log_Addr _data;
 };
 
 __END_SYS

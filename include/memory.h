@@ -7,8 +7,9 @@
 
 __BEGIN_SYS
 
-class Address_Space: private MMU::Directory
+class Address_Space: public MMU::Directory
 {
+
 public:
     typedef CPU::Phy_Addr Phy_Addr;
     typedef CPU::Log_Addr Log_Addr;
