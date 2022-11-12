@@ -9,8 +9,8 @@ OStream cout;
 const unsigned ES1_SIZE = 10000;
 const unsigned ES2_SIZE = 100000;
 #else
-const unsigned ES1_SIZE = 100;
-const unsigned ES2_SIZE = 200;
+const unsigned ES1_SIZE = 10000;
+const unsigned ES2_SIZE = 100000;
 #endif
 
 int main()
@@ -52,6 +52,8 @@ int main()
     self.detach(es1);
     self.detach(es2);
     cout << "  done!" << endl;
+
+    ASM("stop:");
 
     cout << "Deleting segments:";
     delete es1;

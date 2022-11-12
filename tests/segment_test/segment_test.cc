@@ -4,13 +4,18 @@
 
 using namespace EPOS;
 
-#ifdef __cortex_m__
-const unsigned ES1_SIZE = 100;
-const unsigned ES2_SIZE = 200;
-#else
+// #ifdef __cortex_m__
+// // const unsigned ES1_SIZE = 100;
+// // const unsigned ES2_SIZE = 200;
+// const unsigned ES1_SIZE = 10000;
+// const unsigned ES2_SIZE = 100000;
+// #else
+// const unsigned ES1_SIZE = 10000;
+// const unsigned ES2_SIZE = 100000;
+// #endif
+
 const unsigned ES1_SIZE = 10000;
 const unsigned ES2_SIZE = 100000;
-#endif
 
 int main()
 {

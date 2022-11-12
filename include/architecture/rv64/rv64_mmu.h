@@ -246,6 +246,9 @@ public:
     private:
         bool attach(unsigned int lvl2, unsigned int lvl1, const Page_Table *pt, unsigned int n, RV64_Flags flags)
         {
+            if (lvl2 > PD_ENTRIES_LVL_2 - 1)
+                return false;
+                
             if ((*_pd)[lvl2])
             {
 
