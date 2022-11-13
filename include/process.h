@@ -185,73 +185,44 @@ private:
 class Task
 {
 private:
-    static const bool multitask = Traits<System>::multitask;
     typedef CPU::Log_Addr Log_Addr;
 
 public:
-    static volatile Task *_active;  // Why?
-    Heap *_heap;
-    bool has_idle;
+    static volatile Task * _active;  // Works just like Thread::_running.
 
     Task(Segment *cs, Segment *ds)
-        : _as(new (SYSTEM) Address_Space),
-          _cs(cs),
-          _ds(ds),
-          _code(_as->attach(cs, Memory_Map::APP_CODE)),
-          _data(_as->attach(ds, Memory_Map::APP_DATA))
+        : _as(new (SYSTEM) Address_Space), _cs(cs), _ds(ds), _code(_as->attach(_cs, Memory_Map::APP_CODE)), _data(_as->attach(_ds, Memory_Map::APP_DATA))
     {
         db<Task>(TRC) << "Task(as=" << _as << ",cs=" << _cs << ",ds=" << _ds << ",code=" << _code << ",data=" << _data << ") => " << this << endl;
-
-        has_idle = false;
     }
 
     Task(Address_Space *as, Segment *cs, Segment *ds)
-        : _as(as),
-          _cs(cs),
-          _ds(ds),
-          _code(as->attach(cs, Memory_Map::APP_CODE)),
-          _data(as->attach(ds, Memory_Map::APP_DATA))
+        : _as(as), _cs(cs), _ds(ds), _code(_as->attach(_cs, Memory_Map::APP_CODE)), _data(_as->attach(_ds, Memory_Map::APP_DATA))
     {
         db<Task>(TRC) << "Task(as=" << _as << ",cs=" << _cs << ",ds=" << _ds << ",code=" << _code << ",data=" << _data << ") => " << this << endl;
-
-        has_idle = false;
     }
 
-    ~Task()
+    ~Task();
+
+    static void activate(volatile Task *t)
     {
-        _as->detach(_cs, Memory_Map::APP_CODE);
-        _as->detach(_ds, Memory_Map::APP_DATA);
-
-        delete _cs;
-        delete _ds;
-
-        delete _as;
+        Task::_active = t;
+        t->_as->activate();
     }
 
-    static void activate(volatile Task * t)
-    {
-      Task::_active = t;
-      t->_as->activate();
-    }
+    Address_Space *address_space() const { return _as; }
 
-    static unsigned int get_active_pd()
-    {
-        return Task::_active->_as->pd();
-    }
-
-    Address_Space * address_space() const { return _as; }
-
-    Segment * cs() const { return _cs; }
-    Segment * ds() const { return _ds; }
+    Segment *code_segment() const { return _cs; }
+    Segment *data_segment() const { return _ds; }
 
     Log_Addr code() const { return _code; }
     Log_Addr data() const { return _data; }
 
 private:
-    Address_Space * _as;
+    Address_Space *_as;
 
-    Segment * _cs;
-    Segment * _ds;
+    Segment *_cs;
+    Segment *_ds;
 
     Log_Addr _code;
     Log_Addr _data;
