@@ -26,6 +26,7 @@ public:
         if(Traits<System>::multiheap) {
             db<Init>(INF) << "MULTIHEAP: Initializing system's heap: " << endl;
             db<Init>(WRN) << "Master Address: " << MMU::current() << endl;
+            db<Init>(WRN) << "Preheap: " << (&System::_preheap[0]) << " Size: " << HEAP_SIZE << endl;
 
             System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
             char * heap;
@@ -39,13 +40,11 @@ public:
             db<Init>(WRN) << "Heap: " << heap << endl;
 
         } else {
-          db<Init>(INF) << "MONOHEAP: Initializing system's heap: " << endl;
-          db<Init>(INF) << "Multieap: " << Traits<System>::multiheap << endl;
+          db<Init>(INF) << "SINGLEHEAP: Initializing system's heap: " << endl;
           System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
 
         }
-            // System::_heap = new (&System::_preheap[0]) Heap(Address_Space(MMU::current()).attach(new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS)));
-            // System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
+
         db<Init>(INF) << "Heap Size: " << HEAP_SIZE << "Pages : " << MMU::pages(HEAP_SIZE) << endl;
         db<Init>(WRN) << "Initializing the machine: " << endl;
         Machine::init();

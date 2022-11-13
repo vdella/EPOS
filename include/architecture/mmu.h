@@ -76,10 +76,13 @@ public:
 
 public:
     constexpr static unsigned long pages(unsigned long bytes) {return (bytes + sizeof(Page) - 1) / sizeof(Page); }
-    constexpr static unsigned long page_tables(unsigned long pages) { return sizeof(Page) > sizeof(long) ? (pages + PT_ENTRIES - 1) / PT_ENTRIES : 0; }
+    // constexpr static unsigned long page_tables(unsigned long pages) { return sizeof(Page) > sizeof(long) ? (pages + PT_ENTRIES - 1) / PT_ENTRIES : 0; }
+    constexpr static unsigned long page_tables(unsigned long pages) { return (pages + PT_ENTRIES - 1) / PT_ENTRIES; }
+
 
     constexpr static unsigned long offset(const Log_Addr & addr) { return addr & (sizeof(Page) - 1); }
     constexpr static unsigned long indexes(const Log_Addr & addr) { return addr & ~(sizeof(Page) - 1); }
+
 
     constexpr static unsigned long page(const Log_Addr & addr) { return (addr >> PAGE_SHIFT) & (PT_ENTRIES - 1); }
     constexpr static unsigned long directory_lvl_1(const Log_Addr & addr) { return (addr >> DIRECTORY_SHIFT_LVL_1) & 0x1ff; }
