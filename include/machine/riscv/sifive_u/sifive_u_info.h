@@ -11,7 +11,8 @@ struct System_Info: public System_Info_Common
 {
     Boot_Map bm;
     Physical_Memory_Map pmm;
-    Kernel_Load_Map lm;
+    Kernel_Load_Map klm;
+    App_Load_Map alm;
 };
 
 __END_SYS

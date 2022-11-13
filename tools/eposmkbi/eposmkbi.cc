@@ -229,22 +229,17 @@ int main(int argc, char **argv)
     }
 
     // Add application(s) and data
-    si.bm.application_offset = image_size - boot_size;
+    si.bm.application_offset[0] = image_size - boot_size;
     fprintf(out, "    Adding application \"%s\":", argv[optind + 2]);
     image_size += put_file(fd_img, argv[optind + 2]);
     if((argc - optind) == 3) // single APP
         si.bm.extras_offset = -1;
-    else { // multiple APPs or data
-        si.bm.extras_offset = image_size - boot_size;
-        struct stat file_stat;
-        for(int i = optind + 3; i < argc; i++) {
-            fprintf(out, "    Adding file \"%s\":", argv[i]);
-            stat(argv[i], &file_stat);
-            image_size += put_number(fd_img, file_stat.st_size);
+    else{
+        for(int i=4; i<argc; i++){
+            si.bm.application_offset[i-3] = image_size - boot_size;
+            fprintf(out, "    Adding application \"%s\":", argv[i]);
             image_size += put_file(fd_img, argv[i]);
         }
-        // Signalize last application by setting its size to 0
-        image_size += put_number(fd_img, 0);
     }
 
     // Add the size of the image to the Boot_Map in System_Info (excluding BOOT)
@@ -322,7 +317,8 @@ int main(int argc, char **argv)
         fprintf(out, "    setup:    \t%#010lx\n", si.bm.setup_offset);
         fprintf(out, "    init:     \t%#010lx\n", si.bm.init_offset);
         fprintf(out, "    os:       \t%#010lx\n", si.bm.system_offset);
-        fprintf(out, "    app:      \t%#010lx\n", si.bm.application_offset);
+        for (unsigned i = 0; i < 8; i++)
+            fprintf(out, "\n    si.bm.application_offset[%u] %08lx", i, si.bm.application_offset[i]);
         fprintf(out, "    extras:   \t%#010lx\n", si.bm.extras_offset);
     }
 
@@ -559,8 +555,9 @@ template<typename T> bool add_boot_map(int fd, System_Info * si)
         return false;
     if(!put_number(fd, static_cast<T>(si->bm.system_offset)))
         return false;
-    if(!put_number(fd, static_cast<T>(si->bm.application_offset)))
-        return false;
+    for(int i=0; i<8; i++)
+        if(!put_number(fd, static_cast<T>(si->bm.application_offset[i])))                 
+            return false;
     if(!put_number(fd, static_cast<T>(si->bm.extras_offset)))
         return false;
 

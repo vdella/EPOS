@@ -107,7 +107,7 @@ void Setup::say_hi()
     db<Setup>(TRC) << "Setup::say_hi()" << endl;
     db<Setup>(INF) << "System_Info=" << *si << endl;
 
-    if (si->bm.application_offset == -1U)
+    if (si->bm.application_offset[0] == -1U)
         db<Setup>(ERR) << "No APPLICATION in boot image, you don't need EPOS!" << endl;
 
     kout << "This is EPOS!\n"
@@ -132,7 +132,7 @@ void Setup::say_hi()
     else
         kout << "will get from the network!" << endl;
     if (si->bm.extras_offset != -1UL)
-        kout << "  Extras:       " << si->lm.app_extra_size << " bytes" << endl;
+        kout << "  Extras:       " << si->klm.app_extra_size << " bytes" << endl;
 
     kout << endl;
 }

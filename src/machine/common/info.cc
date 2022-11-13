@@ -55,32 +55,35 @@ OStream & operator<<(OStream & os, const System_Info & si)
 
        << "\nLoad_Map={"
 #if defined(__pc__) || defined(__sifive_u__) || defined(__cortex_a53__)
-       << "has_stp="       << si.lm.has_stp
-       << ",has_ini="      << si.lm.has_ini
-       << ",has_sys="      << si.lm.has_sys
-       << ",has_app="      << si.lm.has_app
-       << ",has_ext="      << si.lm.has_ext
-       << ",stp_entry="    << reinterpret_cast<void *>(si.lm.stp_entry)
-       << ",stp_segments=" << si.lm.stp_segments
-       << ",stp_code={b="  << reinterpret_cast<void *>(si.lm.stp_code) << ",s=" << si.lm.stp_code_size << "}"
-       << ",stp_data={b="  << reinterpret_cast<void *>(si.lm.stp_data) << ",s=" << si.lm.stp_data_size << "}"
-       << ",ini_entry="    << reinterpret_cast<void *>(si.lm.ini_entry)
-       << ",ini_segments=" << si.lm.ini_segments
-       << ",ini_code={b="  << reinterpret_cast<void *>(si.lm.ini_code) << ",s=" << si.lm.ini_code_size << "}"
-       << ",ini_data={b="  << reinterpret_cast<void *>(si.lm.ini_data) << ",s=" << si.lm.ini_data_size << "}"
-       << ",sys_entry="    << reinterpret_cast<void *>(si.lm.sys_entry)
-       << ",sys_segments=" << si.lm.sys_segments
-       << ",sys_code={b="  << reinterpret_cast<void *>(si.lm.sys_code) << ",s=" << si.lm.sys_code_size << "}"
-       << ",sys_data={b="  << reinterpret_cast<void *>(si.lm.sys_data) << ",s=" << si.lm.sys_data_size << "}"
-       << ",sys_stack{b="  << reinterpret_cast<void *>(si.lm.sys_stack) << ",s=" << si.lm.sys_stack_size << "}"
-       << ",app_entry="    << reinterpret_cast<void *>(si.lm.app_entry)
-       << ",app_segments=" << si.lm.app_segments
-       << ",app_code={b="  << reinterpret_cast<void *>(si.lm.app_code) << ",s=" << si.lm.app_code_size << "}"
-       << ",app_data={b="  << reinterpret_cast<void *>(si.lm.app_data) << ",s=" << si.lm.app_data_size << "}"
-       << ",app_stack="    << reinterpret_cast<void *>(si.lm.app_stack)
-       << ",app_heap="     << reinterpret_cast<void *>(si.lm.app_heap)
+       << "has_stp="       << si.klm.has_stp
+       << ",has_ini="      << si.klm.has_ini
+       << ",has_sys="      << si.klm.has_sys
+       << ",has_app="      << si.klm.has_app
+       << ",has_ext="      << si.klm.has_ext
+       << ",stp_entry="    << reinterpret_cast<void *>(si.klm.stp_entry)
+       << ",stp_segments=" << si.klm.stp_segments
+       << ",stp_code={b="  << reinterpret_cast<void *>(si.klm.stp_code) << ",s=" << si.klm.stp_code_size << "}"
+       << ",stp_data={b="  << reinterpret_cast<void *>(si.klm.stp_data) << ",s=" << si.klm.stp_data_size << "}"
+       << ",ini_entry="    << reinterpret_cast<void *>(si.klm.ini_entry)
+       << ",ini_segments=" << si.klm.ini_segments
+       << ",ini_code={b="  << reinterpret_cast<void *>(si.klm.ini_code) << ",s=" << si.klm.ini_code_size << "}"
+       << ",ini_data={b="  << reinterpret_cast<void *>(si.klm.ini_data) << ",s=" << si.klm.ini_data_size << "}"
+       << ",sys_entry="    << reinterpret_cast<void *>(si.klm.sys_entry)
+       << ",sys_segments=" << si.klm.sys_segments
+       << ",sys_code={b="  << reinterpret_cast<void *>(si.klm.sys_code) << ",s=" << si.klm.sys_code_size << "}"
+       << ",sys_data={b="  << reinterpret_cast<void *>(si.klm.sys_data) << ",s=" << si.klm.sys_data_size << "}"
+       << ",sys_stack{b="  << reinterpret_cast<void *>(si.klm.sys_stack) << ",s=" << si.klm.sys_stack_size << "}";
+       
+       for (unsigned int i = 0; i < 8; i++) {
+           os << ",app_entry="    << reinterpret_cast<void *>(si.klm.apps[i].app_entry)
+              << ",app_segments=" << si.klm.apps[i].app_segments
+              << ",app_code={b="  << reinterpret_cast<void *>(si.klm.apps[i].app_code) << ",s=" << si.klm.apps[i].app_code_size << "}"
+              << ",app_data={b="  << reinterpret_cast<void *>(si.klm.apps[i].app_data) << ",s=" << si.klm.apps[i].app_data_size << "}"
+              << ",app_stack="    << reinterpret_cast<void *>(si.klm.apps[i].app_stack)
+              << ",app_heap="     << reinterpret_cast<void *>(si.klm.apps[i].app_heap);
+       }
 #endif
-       << ",app_extra={b=" << reinterpret_cast<void *>(si.lm.app_extra) << ",s=" << si.lm.app_extra_size << "}"
+    os << ",app_extra={b=" << reinterpret_cast<void *>(si.klm.app_extra) << ",s=" << si.klm.app_extra_size << "}"
        << "}"
        << "}";
 
