@@ -15,7 +15,7 @@ extern "C" { void __epos_app_entry(); }
 
 void Thread::init()
 {
-    db<Init, Thread>(TRC) << "Thread::init()" << endl;
+    db<Init, Thread>(WRN) << "Thread::init()" << endl;
     typedef int (Main)();
     System_Info * si = System::info();
 

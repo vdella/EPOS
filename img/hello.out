@@ -1,0 +1,35 @@
+
+
+
+
+This is EPOS!
+
+Setting up this machine as follows: 
+  Mode:         library
+  Processor:    1 x RV64 at 50 MHz (BUS clock = 50 MHz)
+  Machine:      SiFive-U
+  Memory:       4096 MB [0x0000000080000000:0x000000017fffffff]
+  User memory:  4095 MB [0x0000000080000000:0x000000017fff0000]
+  I/O space:    512 MB [0x0000000000000000:0x000000001fffffff]
+  Node Id:      will get from the network!
+  Position:     will get from the network!
+  Extras:       0 bytes
+
+Total Pages: 1572864
+Total Page Tables: 3072
+Master Base Address: 0x000000013fdef000
+Page Directory LVL1 Address0x0000000180000000
+Page Directory End Address0x000000013fdf6000
+Initializing the architecture: 
+Initializing system's heap: 
+Master Address: 0x000000013fdef000
+Chunk pt 0x00000000800fffef
+Attach Return: 0x0000000080000000!!!!
+Heap: 
+Initializing the machine: 
+Thread::init()
+The last thread has exited!
+Rebooting the machine ...
+Machine::reboot()
+QEMU: Terminated
+
