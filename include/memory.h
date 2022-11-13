@@ -20,6 +20,7 @@ public:
     ~Address_Space();
 
     using MMU::Directory::pd;
+    using MMU::Directory::activate;
 
     Log_Addr attach(Segment * seg);
     Log_Addr attach(Segment * seg, Log_Addr addr);
