@@ -16,6 +16,23 @@ protected:
     typedef unsigned long Size;
 
 public:
+    struct App_Load_Map
+    {
+      private:
+          typedef unsigned int LAddr;
+          typedef unsigned int PAddr;
+          typedef unsigned int Size;
+
+      public:
+          LAddr app_entry;
+          Size  app_segments;
+          LAddr app_code;
+          Size  app_code_size;
+          LAddr app_data;
+          LAddr app_stack;
+          LAddr app_heap;
+          Size  app_data_size;
+    };
     // The information we have at boot time (built by MKBI)
     // Modifications to this map requires adjustments at MKBI and SETUP
     struct Boot_Map
@@ -30,11 +47,12 @@ public:
         int space_y;                      //
         int space_z;                      //
         unsigned char uuid[8];            // EPOS image Universally Unique Identifier
+        unsigned int n_apps;
         Size img_size;                    // Boot image size (in bytes)
         Size setup_offset;                // Image offsets (-1 => not present)
         Size init_offset;
         Size system_offset;
-        Size application_offset;
+        Size application_offset[8];
         Size extras_offset;
     };
 
@@ -102,14 +120,15 @@ public:
         Size  sys_data_size;
         LAddr sys_stack;
         Size  sys_stack_size;
-        LAddr app_entry;
-        Size  app_segments;
-        LAddr app_code;
-        Size  app_code_size;
-        LAddr app_data;
-        LAddr app_stack;
-        LAddr app_heap;
-        Size  app_data_size;
+        App_Load_Map app[8];
+        // LAddr app_entry;
+        // Size  app_segments;
+        // LAddr app_code;
+        // Size  app_code_size;
+        // LAddr app_data;
+        // LAddr app_stack;
+        // LAddr app_heap;
+        // Size  app_data_size;
         LAddr app_extra;
         Size  app_extra_size;
     };

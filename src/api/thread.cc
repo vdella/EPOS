@@ -20,29 +20,16 @@ Scheduler<Thread> Thread::_scheduler;
 void Thread::constructor_prologue(unsigned int stack_size)
 {
     lock();
-    
-    _task = Task::_active;
-    if(this->_link.rank() == IDLE){
-        _task->has_idle = true;
-    }
 
+    _task = Task::_active;
     _thread_count++;
     _scheduler.insert(this);
 
-    // The main stack is statically allocated right bellow its Heap (at the last addresses of APP_DATA).
-    // After Init_Application, newly created Threads will have their stacks located at the App's Heap.
-    // Lastly, the first application has an extra stack for the idle Thread.
-    if (this->_link.rank() == MAIN) {
-        _stack =  reinterpret_cast<char *>(Traits<Application>::APP_HEAP - 8 - (16 * 1024));  // TODO check math.
-    } else if (this->_link.rank() == IDLE) {
-        _stack = new (SYSTEM) char[stack_size];
-    } else {
-        _stack = reinterpret_cast<char *>(_task->_heap->alloc(stack_size));
-    }
+    _stack = new (SYSTEM) char[stack_size];
 }
 
 
-void Thread::constructor_epilogue(const Log_Addr entry, unsigned int stack_size)
+void Thread::constructor_epilogue(const Log_Addr & entry, unsigned int stack_size)
 {
     db<Thread>(TRC) << "Thread(entry=" << entry
                     << ",state=" << _state
@@ -252,12 +239,7 @@ void Thread::exit(int status)
     }
 
     Thread * next = _scheduler.choose(); // at least idle will always be there
-    
-    if (prev->_link.rank() == MAIN && prev->_task->has_idle == false) {
-        db<Thread>(TRC) << "Thread::exit(main without idle has exited)" << endl;
-        delete prev->_task;
-    }
-    
+
     dispatch(prev, next);
 
     unlock();
@@ -358,29 +340,18 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         db<Thread>(TRC) << "Thread::dispatch(prev=" << prev << ",next=" << next << ")" << endl;
         db<Thread>(INF) << "prev={" << prev << ",ctx=" << *prev->_context << "}" << endl;
         db<Thread>(INF) << "next={" << next << ",ctx=" << *next->_context << "}" << endl;
-        
-        unsigned int change_satp = 0;
-        unsigned int new_satp = 0;
-        // if(prev->_task != next->_task){
-        //     Task::activate(next->_task);
-        // }
-        
+
+
         if(prev->_task != next->_task){
-            ASM("change_addr:");
-            change_satp = 1;
-            Task::_active = next->_task;
-            new_satp = Task::get_active_pd() >> 12; //12 or 10?
-            new_satp |= 1 << 31;
+            Task::activate(next->_task);
         }
-        
-        db<Thread>(TRC) << "Thread::dispatch(change_satp=" << change_satp << ",new_satp=" << hex << new_satp << ")" << endl;
-        
+
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
         // passing the volatile to switch_constext forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
-        CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context, change_satp, new_satp);
+        CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
     }
 }
 
@@ -406,7 +377,7 @@ int Thread::idle()
         db<Thread>(WRN) << "Halting the machine ..." << endl;
         CPU::halt();
     }
-    
+
     // Some machines will need a little time to actually reboot
     for(;;);
 

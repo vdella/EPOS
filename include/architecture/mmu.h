@@ -149,7 +149,7 @@ public:
         Directory() {}
         Directory(Page_Directory * pd) {}
 
-        Page_Table * pd() const { return 0; }
+        Page_Table * pd() const {return 0;}
 
         void activate() {}
 

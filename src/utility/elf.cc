@@ -6,7 +6,7 @@
 
 __BEGIN_UTIL
 
-int ELF::load_segment(int i, Elf32_Addr addr)
+int ELF::load_segment(int i, Elf64_Addr addr)
 {
     if((i > segments()) || (segment_type(i) != PT_LOAD))
         return 0;

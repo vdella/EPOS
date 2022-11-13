@@ -47,7 +47,8 @@ public:
             KC   = (V | R | X),
             KD   = (V | R | W),
             UD   = (V | R | W | U),
-            PD   = (V | A | D)
+            PD   = (V | A | D),
+            UA   = (V | R | W | X | U)
         };
 
         RV64_Flags() {}

@@ -1,71 +1,59 @@
 // EPOS Thread Initialization
 
+#include <utility/elf.h>
+#include <architecture/mmu.h>
 #include <machine/timer.h>
 #include <machine/ic.h>
 #include <system.h>
 #include <process.h>
+#include <memory.h>
+
 
 __BEGIN_SYS
 
-extern "C"
-{
-    void __epos_app_entry();
-}
+extern "C" { void __epos_app_entry(); }
 
 void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
+    typedef int (Main)();
+    System_Info * si = System::info();
 
-    Criterion::init();
+    if(Traits<System>::multitask) {
+        char * bi = reinterpret_cast<char*>(Memory_Map::RAM_BASE);
 
-    typedef int(Main)();
+        for(unsigned i = 0; i < si->bm.n_apps; i++) {
+             // We need W permission to load the segment
+            Segment * code_seg = new (SYSTEM) Segment(64*4096, MMU::RV64_Flags::UA);
+            Segment * data_seg = new (SYSTEM) Segment(64*4096, MMU::RV64_Flags::UA);
+            Task * app_task =  new (SYSTEM) Task(code_seg, data_seg);
 
-    System_Info *si = System::info();
-
-    if (Traits<System>::multitask)
-    {
-        char *bi = reinterpret_cast<char *>(Memory_Map::MEM_BASE);
-
-        for (unsigned i = 0; i < si->bm.n_apps; i++)
-        {
-            // We need W permission to load the segment
-            Segment *code_seg = new (SYSTEM) Segment(si->lm.app[i].app_code_size, MMU::Flags::ALL);
-            Segment *data_seg = new (SYSTEM) Segment(8 * 1024 * 1024, MMU::Flags::UDATA);
-            Task *app_task = new (SYSTEM) Task(code_seg, data_seg);
-
-            db<Setup>(TRC) << "app_task = " << app_task << endl;
+            db<Setup>(TRC) << "app_task = " << hex << app_task << endl;
             Task::activate(app_task);
 
-            Task::_active->_heap = reinterpret_cast<Heap *>(Memory_Map::APP_HEAP);
-
-            if (si->lm.has_app)
-            {
-                ELF *app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[i]]);
-                db<Setup>(TRC) << "Setup_SifiveE::load_app()" << endl;
-                if (app_elf->load_segment(0) < 0)
-                {
+            if(si->lm.has_app) {
+                ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[i]]);
+                db<Setup>(TRC) << "Setup::load_app()" << endl;
+                if(app_elf->load_segment(0) < 0) {
                     db<Setup>(ERR) << "Application code segment was corrupted during INIT!" << endl;
                     Machine::panic();
                 }
-                for (int j = 1; j < app_elf->segments(); j++)
-                    if (app_elf->load_segment(j) < 0)
-                    {
+                for(int i = 1; i < app_elf->segments(); i++)
+                    if(app_elf->load_segment(i) < 0) {
                         db<Setup>(ERR) << "Application data segment was corrupted during INIT!" << endl;
                         Machine::panic();
                     }
             }
 
-            // Delegate MAIN thread.
             new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), reinterpret_cast<Main *>(si->lm.app[i].app_entry));
         }
 
-        // We need to be in the Address_Space of the first thread.
+        // We need to be in the AS of the first thread.
         Task::activate(Thread::self()->_task);
     }
 
     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)
-    Thread *idle = new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::IDLE), Thread::idle);
-    idle->_context->_st |= CPU::SPP_S;
+    new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::IDLE), &Thread::idle);
 
     // The installation of the scheduler timer handler does not need to be done after the
     // creation of threads, since the constructor won't call reschedule() which won't call
@@ -73,7 +61,7 @@ void Thread::init()
     // Letting reschedule() happen during thread creation is also harmless, since MAIN is
     // created first and dispatch won't replace it nor by itself neither by IDLE (which
     // has a lower priority)
-    if (Criterion::timed)
+    if(Criterion::timed)
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
     // No more interrupts until we reach init_first
