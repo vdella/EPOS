@@ -26,7 +26,7 @@ public:
 public:
     Boot_Map bm;
     Physical_Memory_Map pmm;
-    Kernel_Load_Map lm;
+    Kernel_Load_Map klm;
     Time_Map tm;
 };
 
