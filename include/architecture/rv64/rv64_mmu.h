@@ -183,11 +183,11 @@ public:
 
         Page_Table *pd() const { return _pd; }
 
-<<<<<<< HEAD
         void activate() {
-          CPU::satp((1UL << 63) | (Phy_Addr)_pd >> 12);
-          //ASM("sfence.vma");
-=======
+            CPU::satp((1UL << 63) | (Phy_Addr)_pd >> 12);
+            ASM("sfence.vma");
+        }
+
         // Attach Chunk's PT into the Address Space and return the Page Directory base address.
         Log_Addr attach(const Chunk &chunk, unsigned int lvl2 = directory_lvl_2(APP_LOW), unsigned int lvl1 = directory_lvl_1(APP_LOW))
         {
@@ -200,7 +200,6 @@ public:
                         return addr;
                     }
             return false;
->>>>>>> origin/mmu-stable
         }
 
         // Used to create non-relocatable segments such as code
