@@ -388,8 +388,12 @@ void Setup::init_mmu()
 
 
     unsigned int PD_ENTRIES_LVL_2 = total_pts / PT_ENTRIES;
+    if (total_pts % PT_ENTRIES > 0)
+      PD_ENTRIES_LVL_2 += 1;
     unsigned int PD_ENTRIES_LVL_1 = PT_ENTRIES;
     unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
+
+    kout << "LVL 2: " << PD_ENTRIES_LVL_2 << endl;
 
     Phy_Addr PD2_ADDR = PAGE_TABLES;
     Page_Directory * master = new ((void *)PD2_ADDR) Page_Directory();
@@ -398,10 +402,10 @@ void Setup::init_mmu()
 
     master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2);
 
-    Phy_Addr PD1_ADDR = PD2_ADDR + PT_ENTRIES * PAGE_SIZE;
+    Phy_Addr PD1_ADDR = PD2_ADDR + 4 * PAGE_SIZE;
     Phy_Addr PT0_ADDR = PD1_ADDR;
 
-    for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
+    for (unsigned long i = 0; i < PD_ENTRIES_LVL_2-1; i++)
     {
         Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
         PD2_ADDR += PAGE_SIZE;
@@ -409,6 +413,8 @@ void Setup::init_mmu()
         pd_lv1->remap(PD1_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
         PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
     }
+    Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
+    pd_lv1->remap(PD1_ADDR, RV64_Flags::V, 0, (total_pts % PT_ENTRIES));
 
     PD1_ADDR = 0;
     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
@@ -419,19 +425,21 @@ void Setup::init_mmu()
             PT0_ADDR += PAGE_SIZE;
             pt_lv0->remap(PD1_ADDR, RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
             PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
+            if (PD1_ADDR >= RAM_TOP)
+              break;
         }
     }
     kout << "Page Directory LVL1 Address" << PD1_ADDR << endl;
 
     kout << "Page Directory End Address" << PD2_ADDR << endl;
 
-    db<Setup>(WRN) << "Set SATP" << endl;
     // Set SATP and enable paging
+    db<Setup>(WRN) << "Set SATP" << endl;
     CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
-
     db<Setup>(WRN) << "Flush TLB" << endl;
-    // Flush TLB to ensure we've got the right memory organization
     MMU::flush_tlb();
+
+    // Flush TLB to ensure we've got the right memory organization
 }
 
 void Setup::call_next()
