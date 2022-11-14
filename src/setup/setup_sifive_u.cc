@@ -60,6 +60,8 @@ private:
     static const unsigned long BOOT_STACK = Memory_Map::BOOT_STACK;
     static const unsigned long PAGE_TABLES = Memory_Map::PAGE_TABLES;
     static const unsigned long INIT = Memory_Map::INIT;
+    // static const unsigned long MMODE_F = Memory_Map::MMODE_F;
+
 
 
     // static const unsigned long SYS = Memory_Map::SYS;
@@ -452,17 +454,21 @@ using namespace EPOS::S;
 
 void _entry() // machine mode
 {
+    db<Setup>(WRN) << "Entrou no Entry" << endl;
     // SiFive-U core 0 doesn't have MMU
     if (CPU::mhartid() == 0)
         CPU::halt();
 
     // ensure that sapt is 0
+    db<Setup>(WRN) << "SATP" << endl;
+
     CPU::satp(0);
     Machine::clear_bss();
+    db<Setup>(WRN) << "Stack Pointer" << endl;
 
     // need to check?
     // set the stack pointer, thus creating a stack for SETUP
-    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long));
+    CPU::sp(Memory_Map::BOOT_STACK - Traits<Machine>::STACK_SIZE);
 
     // Set up the Physical Memory Protection registers correctly
     // A = NAPOT, X, R, W
@@ -475,9 +481,20 @@ void _entry() // machine mode
     CPU::mideleg(CPU::SSI | CPU::STI | CPU::SEI);
     CPU::medeleg(0xffff);
 
+    // Relocate _mmode_forward - 1024 bytes are enough
+    char * src = reinterpret_cast<char *>(&_mmode_forward);
+    char * dst = reinterpret_cast<char *>(Memory_Map::MMODE_F);
+    for(int i=0; i < 1024; i++){
+        *dst = *src;
+        src++;
+        dst++;
+    }
+
     CPU::mies(CPU::MSI | CPU::MTI | CPU::MEI);              // enable interrupts generation by CLINT
     CPU::mint_disable();                                    // (mstatus) disable interrupts (they will be reenabled at Init_End)
-    CLINT::mtvec(CLINT::DIRECT, CPU::Reg(&_mmode_forward)); // setup a preliminary machine mode interrupt handler pointing it to _mmode_forward
+    CLINT::mtvec(CLINT::DIRECT, CPU::Reg(Memory_Map::MMODE_F)); // setup a preliminary machine mode interrupt handler pointing it to _mmode_forward
+
+    db<Setup>(WRN) << "Setup" << endl;
 
     // MPP_S = change to supervirsor
     // MPIE = otherwise we won't ever receive interrupts
@@ -488,6 +505,8 @@ void _entry() // machine mode
 
 void _setup() // supervisor mode
 {
+    db<Setup>(WRN) << "Entrou no Setup" << endl;
+
     kerr << endl;
     kout << endl;
 

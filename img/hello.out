@@ -1,0 +1,77 @@
+EEntrntou no Entroryu no Entry
+
+SATP
+Stack Pointer
+Setup
+Entrou no Setup
+
+
+
+
+Setup(si=0x0000000080004ba8,sp=2281634959)
+Setup:si={Boot_Map={n_cpus=1,mem_b=0x0000000080000000,mem_t=0x0000000087ffffff,m
+io_b=0x0000000000000000,mio_t=0x000000001fffffff,node_id=-1,space=(-1,-1,-132900
+4545),uuid=0x0000000087fefccf,img_size=0,setup_o=0,init_o=0,system_o=1,applicati
+on_o=0x0000000087fefcff,extras_o=0xffffffff}
+Physical_Memory_Map={sys_info=0x0000000000000000,sys_pt=0x0000000000000000,sys_p
+d=0x0000000000000000,phy_mem_pts=0x0000000000000000,io_pts=0x0000000000000000,us
+r_mem_base=0x0000000000000000,usr_mem_top=0x0000000000000000,sys_code=0x00000000
+00000000,sys_data=0x0000000000000000,sys_stack=0x0000000000000000,app_code=0x000
+0000000000000,app_data=0x0000000000000000,app_extra=0x0000000000000000,free1_bas
+e=0x0000000000000000,free1_top=0x0000000000000000,free2_base=0x0000000000000000,
+free2_top=0x0000000000000000,free3_base=0x0000000000000000,free3_top=0x000000000
+0000000}
+Load_Map={has_stp=0,has_ini=0,has_sys=0,has_app=0,has_ext=0,stp_entry=0x00000000
+00000000,stp_segments=0,stp_code={b=0x0000000000000000,s=0},stp_data={b=0x000000
+0000000000,s=0},ini_entry=0x0000000000000000,ini_segments=0,ini_code={b=0x000000
+0000000000,s=0},ini_data={b=0x0000000000000000,s=0},sys_entry=0x0000000000000000
+,sys_segments=0,sys_code={b=0x0000000000000000,s=0},sys_data={b=0x00000000000000
+00,s=0},sys_stack{b=0x0000000000000000,s=0},app_extra={b=0x0000000000000000,s=0}
+}}
+Setup::say_hi()
+System_Info={Boot_Map={n_cpus=1,mem_b=0x0000000080000000,mem_t=0x0000000087fffff
+f,mio_b=0x0000000000000000,mio_t=0x000000001fffffff,node_id=-1,space=(-1,-1,-132
+9004545),uuid=0x0000000087fef97f,img_size=0,setup_o=0,init_o=0,system_o=1,applic
+ation_o=0x0000000087fef9af,extras_o=0xffffffff}
+Physical_Memory_Map={sys_info=0x0000000000000000,sys_pt=0x0000000000000000,sys_p
+d=0x0000000000000000,phy_mem_pts=0x0000000000000000,io_pts=0x0000000000000000,us
+r_mem_base=0x0000000000000000,usr_mem_top=0x0000000000000000,sys_code=0x00000000
+00000000,sys_data=0x0000000000000000,sys_stack=0x0000000000000000,app_code=0x000
+0000000000000,app_data=0x0000000000000000,app_extra=0x0000000000000000,free1_bas
+e=0x0000000000000000,free1_top=0x0000000000000000,free2_base=0x0000000000000000,
+free2_top=0x0000000000000000,free3_base=0x0000000000000000,free3_top=0x000000000
+0000000}
+Load_Map={has_stp=0,has_ini=0,has_sys=0,has_app=0,has_ext=0,stp_entry=0x00000000
+00000000,stp_segments=0,stp_code={b=0x0000000000000000,s=0},stp_data={b=0x000000
+0000000000,s=0},ini_entry=0x0000000000000000,ini_segments=0,ini_code={b=0x000000
+0000000000,s=0},ini_data={b=0x0000000000000000,s=0},sys_entry=0x0000000000000000
+,sys_segments=0,sys_code={b=0x0000000000000000,s=0},sys_data={b=0x00000000000000
+00,s=0},sys_stack{b=0x0000000000000000,s=0},app_extra={b=0x0000000000000000,s=0}
+}}
+This is EPOS!
+
+Setting up this machine as follows: 
+  Mode:         built-in
+  Processor:    1 x RV64 at 50 MHz (BUS clock = 50 MHz)
+  Machine:      SiFive-U
+  Memory:       128 MB [0x0000000080000000:0x0000000087ffffff]
+  User memory:  127 MB [0x0000000080000000:0x0000000087ffffff]
+  I/O space:    512 MB [0x0000000000000000:0x000000001fffffff]
+  Node Id:      will get from the network!
+  Position:     will get from the network!
+  Extras:       0 bytes
+
+Total Pages: 557056
+Total Page Tables: 1088
+Master Base Address: 0x00000000877eafff
+Page Directory LVL1 Address0x0000000080000000
+Page Directory End Address0x00000000877edfff
+Set SATP
+Flush TLB
+QEMU 6.2.0 monitor - type 'help' for more information
+(qemu) c[K[Dcp[K[D[Dcpu[K[D[D[Dcpu [K[D[D[D[Dcpu 1[K
+(qemu) i[K[Din[K[D[Dinf[K[D[D[Dinfo[K[D[D[D[Dinfo [K[D[D[D[D[Dinfo m[K[D[D[D[D[D[Dinfo me[K[D[D[D[D[D[D[Dinfo mem[K
+vaddr            paddr            size             attr
+---------------- ---------------- ---------------- -------
+(qemu) QEMU: Terminated
+

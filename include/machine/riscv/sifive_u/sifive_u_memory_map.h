@@ -22,7 +22,7 @@ public:
         MIO_BASE        = Traits<Machine>::MIO_BASE,
         MIO_TOP         = Traits<Machine>::MIO_TOP,
         BOOT_STACK      = RAM_TOP,                                     // will be used as the stack's base, not the stack pointer
-        PAGE_TABLES     = BOOT_STACK - 64 * 1024 - ((1 + 512 + (512*512)) * 4096),
+        PAGE_TABLES     = BOOT_STACK - 64 * 1024 - ((1 + 4 + (4*512)) * 4096),
         FREE_BASE       = RAM_BASE,
         FREE_TOP        = BOOT_STACK,
 
@@ -73,6 +73,7 @@ public:
         SYS_CODE = SYS,
         SYS_DATA = Traits<Machine>::SYS_DATA,
         SYS_INFO = PAGE_TABLES - 4096,
+        MMODE_F  = SYS_INFO - 4096,
         SYS_STACK = NOT_USED,
         SYS_HEAP = NOT_USED,
 
