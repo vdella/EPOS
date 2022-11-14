@@ -8,7 +8,7 @@ all: FORCE
 ifndef APPLICATION
 		$(foreach app,$(APPLICATIONS),$(MAKE) APPLICATION=$(app) $(PRECLEAN) prebuild_$(app) all1 posbuild_$(app);)
 else
-		$(MAKE) all1
+		(cd etc && $(MAKE) APPLICATION=hello)
 endif
 
 all1: $(SUBDIRS)

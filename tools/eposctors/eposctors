@@ -5,11 +5,16 @@
 
 ELF=$1
 GDB=$2
+OBJDUMP=/home/haku/Documents/SO2/rv64/bin/riscv64-unknown-linux-gnu-objdump
+# INIT_ARRAY_OFFSET=`objdump -h $ELF|grep "\.init_array"|sed -e "s/  */#/g"|cut -d '#' -f7`
+# INIT_ARRAY_SIZE=`objdump -h $ELF|grep "\.init_array"|sed -e "s/  */#/g"|cut -d '#' -f4`
+# FINI_ARRAY_OFFSET=`objdump -h $ELF|grep "\.fini_array"|sed -e "s/  */#/g"|cut -d '#' -f7`
+# FINI_ARRAY_SIZE=`objdump -h $ELF|grep "\.fini_array"|sed -e "s/  */#/g"|cut -d '#' -f4`
 
-INIT_ARRAY_OFFSET=`objdump -h $ELF|grep "\.init_array"|sed -e "s/  */#/g"|cut -d '#' -f7`
-INIT_ARRAY_SIZE=`objdump -h $ELF|grep "\.init_array"|sed -e "s/  */#/g"|cut -d '#' -f4`
-FINI_ARRAY_OFFSET=`objdump -h $ELF|grep "\.fini_array"|sed -e "s/  */#/g"|cut -d '#' -f7`
-FINI_ARRAY_SIZE=`objdump -h $ELF|grep "\.fini_array"|sed -e "s/  */#/g"|cut -d '#' -f4`
+INIT_ARRAY_OFFSET=`$OBJDUMP -h $ELF|grep "\.init_array"|sed -e "s/  */#/g"|cut -d '#' -f7`
+INIT_ARRAY_SIZE=`$OBJDUMP -h $ELF|grep "\.init_array"|sed -e "s/  */#/g"|cut -d '#' -f4`
+FINI_ARRAY_OFFSET=`$OBJDUMP -h $ELF|grep "\.fini_array"|sed -e "s/  */#/g"|cut -d '#' -f7`
+FINI_ARRAY_SIZE=`$OBJDUMP -h $ELF|grep "\.fini_array"|sed -e "s/  */#/g"|cut -d '#' -f4`
 
 echo "CTOR_LIST:"
 if [ "$GDB" = "" ] ; then
@@ -17,7 +22,7 @@ if [ "$GDB" = "" ] ; then
     for item in $LIST; do
         sym=`nm $ELF|grep $item|grep GLOBAL|sed -e "s/.*_GLOBAL__sub_I_//g"|c++filt`
         echo 0x$item $sym
-    done   
+    done
 else
     hexdump -s 0x$INIT_ARRAY_OFFSET -n 0x$INIT_ARRAY_SIZE -v -e '1/4 "break *0x%08x\n"' $ELF
 fi
@@ -33,4 +38,3 @@ if [ "$GDB" = "" ] ; then
 else
     hexdump -s 0x$FINI_ARRAY_OFFSET -n 0x$FINI_ARRAY_SIZE -v -e '1/4 "break *0x%08x\n"' $ELF
 fi
-

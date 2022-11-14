@@ -60,14 +60,14 @@ void IC::int_not(Interrupt_Id id)
 
 void IC::exception(Interrupt_Id id)
 {
-    CPU::Reg epc = CPU::sepc();
-    CPU::Reg sp = CPU::sp();
-    CPU::Reg status = CPU::sstatus();
-    CPU::Reg cause = CPU::scause();
-    CPU::Reg tval = CPU::stval();
-    Thread * thread = Thread::self();
+    // CPU::Reg epc = CPU::sepc();
+    // CPU::Reg sp = CPU::sp();
+    // CPU::Reg status = CPU::sstatus();
+    // CPU::Reg cause = CPU::scause();
+    // CPU::Reg tval = CPU::stval();
+    // Thread * thread = Thread::self();
 
-    db<IC,System>(WRN) << "IC::Exception(" << id << ") => {" << hex << "thread=" << thread << ",epc=" << epc << ",sp=" << sp << ",status=" << status << ",cause=" << cause << ",tval=" << tval << "}" << dec;
+    // db<IC,System>(WRN) << "IC::Exception(" << id << ") => {" << hex << "thread=" << thread << ",epc=" << epc << ",sp=" << sp << ",status=" << status << ",cause=" << cause << ",tval=" << tval << "}" << dec;
 
     switch(id) {
     case 0: // unaligned instruction
@@ -128,4 +128,3 @@ static void print_context() {
     db<IC, System>(TRC) << "IC::leave:ctx=" << *reinterpret_cast<CPU::Context *>(CPU::sp() + 32) << endl;
     CPU::fr(0);
 }
-

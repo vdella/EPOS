@@ -95,7 +95,6 @@ private:
     void load_parts();
     void init_mmu();
     void mmu_init();
-    void enable_paging();
     void call_next();
 
 private:
@@ -117,8 +116,13 @@ Setup::Setup()
 
     // Print basic facts about this EPOS instance
     say_hi();
+
     //build page tables
     init_mmu();
+
+    build_lm();
+
+    load_parts();
 
     // enable_paging();
 
@@ -161,68 +165,6 @@ void Setup::say_hi()
     kout << endl;
 }
 
-// void Setup::enable_paging()
-// {
-//
-//     unsigned int PAGE_SIZE = 4 * 1024;
-//     unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
-//     Phy_Addr bytes = 10UL * 1024 * 1024 * 1024;
-//     kout << "Total Bytes " << bytes;
-//     unsigned long pages = MMU::pages(bytes);
-//
-//     kout << "Total Pages: " << pages << endl;
-//
-//     unsigned total_pts = MMU::page_tables(pages);
-//     kout << "Total Page Tables: " << total_pts << endl;
-//
-//
-//     unsigned int PD_ENTRIES_LVL_2 = total_pts / PT_ENTRIES;
-//     unsigned int PD_ENTRIES_LVL_1 = PT_ENTRIES;
-//     unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
-//
-//     Phy_Addr PD2_ADDR = PAGE_TABLES;
-//     Page_Directory * master = new ((void *)PD2_ADDR) Page_Directory();
-//     kout << "Master Base Address: " << PD2_ADDR << endl;
-//     PD2_ADDR += PAGE_SIZE;
-//
-//     master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2);
-//
-//     Phy_Addr PD1_ADDR = PD2_ADDR + PT_ENTRIES * PAGE_SIZE;
-//     Phy_Addr PT0_ADDR = PD1_ADDR;
-//
-//     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
-//     {
-//         Page_Directory *pd_lv1 = new ((void *)PD2_ADDR) Page_Directory();
-//         PD2_ADDR += PAGE_SIZE;
-//
-//         pd_lv1->remap(PD1_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_1);
-//         PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
-//     }
-//
-//     PD1_ADDR = 0;
-//     for (unsigned long i = 0; i < PD_ENTRIES_LVL_2; i++)
-//     {
-//         for (unsigned long j = 0; j < PD_ENTRIES_LVL_1; j++)
-//         {
-//             Page_Table *pt_lv0 = new ((void *)PT0_ADDR) Page_Table();
-//             PT0_ADDR += PAGE_SIZE;
-//             pt_lv0->remap(PD1_ADDR, RV64_Flags::SYS, 0, PT_ENTRIES_LVL_0);
-//             PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
-//         }
-//     }
-//     kout << "Page Directory LVL1 Address" << PD1_ADDR << endl;
-//
-//     kout << "Page Directory End Address" << PD2_ADDR << endl;
-//
-//     db<Setup>(INF) << "Set SATP" << endl;
-//     // Set SATP and enable paging
-//     CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
-//
-//     db<Setup>(INF) << "Flush TLB" << endl;
-//     // Flush TLB to ensure we've got the right memory organization
-//     MMU::flush_tlb();
-// }
-
 void Setup::load_parts()
 {
     // Relocate System_Info
@@ -237,7 +179,7 @@ void Setup::load_parts()
     ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
 
     if(si->lm.has_ini) {
-        db<Setup>(TRC) << "Setup_SifiveE::load_init()" << endl;
+        db<Setup>(WRN) << "Setup_SifiveE::load_init()" << endl;
         if(ini_elf->load_segment(0) < 0) {
             db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
             _panic();
@@ -254,11 +196,11 @@ void Setup::load_parts()
         db<Setup>(ERR) << "init is larger than its reserved memory" << endl;
         _panic();
     }
-    db<Setup>(TRC) << "init has " << hex << sys_elf->segment_address(0) - ini_elf->segment_address(0) - ini_elf->segment_size(0) << " unused bytes of memory" << endl;
+    db<Setup>(WRN) << "init has " << hex << sys_elf->segment_address(0) - ini_elf->segment_address(0) - ini_elf->segment_size(0) << " unused bytes of memory" << endl;
 
     // Load SYSTEM
     if(si->lm.has_sys) {
-        db<Setup>(TRC) << "Setup_SifiveE::load_system()" << endl;
+        db<Setup>(WRN) << "Setup_SifiveE::load_system()" << endl;
         if(sys_elf->load_segment(0) < 0) {
             db<Setup>(ERR) << "system code segment was corrupted during SETUP!" << endl;
             _panic();
@@ -274,18 +216,20 @@ void Setup::load_parts()
         db<Setup>(ERR) << "sys code is larger than its reserved memory" << endl;
         _panic();
     }
-    db<Setup>(TRC) << "sys code has " << hex << sys_elf->segment_address(1) - sys_elf->segment_address(0) - sys_elf->segment_size(0) << " unused bytes of memory" << endl;
+    db<Setup>(WRN) << "sys code has " << hex << sys_elf->segment_address(1) - sys_elf->segment_address(0) - sys_elf->segment_size(0) << " unused bytes of memory" << endl;
 
     if((long unsigned int)ini_elf->segment_size(1) > sys_elf->segment_address(1) + 0x00100000 - sys_elf->segment_address(1)) {
         db<Setup>(ERR) << "init is larger than its reserved memory" << endl;
         _panic();
     }
-    db<Setup>(TRC) << "sys data has " << hex << sys_elf->segment_address(1) + 0x00100000 - sys_elf->segment_address(1) - ini_elf->segment_size(1) << " unused bytes of memory" << endl;
+    db<Setup>(WRN) << "sys data has " << hex << sys_elf->segment_address(1) + 0x00100000 - sys_elf->segment_address(1) - ini_elf->segment_size(1) << " unused bytes of memory" << endl;
 }
 
 
 void Setup::build_lm()
 {
+    db<Setup>(WRN) << "Build Load Map!" << endl;
+
     // Get boot image structure
     si->lm.has_stp = (si->bm.setup_offset != -1u);
     si->lm.has_ini = (si->bm.init_offset != -1u);
@@ -301,13 +245,21 @@ void Setup::build_lm()
     si->lm.stp_data = ~0U;
     si->lm.stp_data_size = 0;
 
+    db<Setup>(WRN) << "Before Boot Info!" << endl;
+
+
     bi = reinterpret_cast<char *>(Traits<Machine>::RAM_BASE); // bi is loaded at MEM_BASE
     if(si->lm.has_stp) {
+      db<Setup>(WRN) << "Before ELF Cast!" << endl;
         ELF * stp_elf = reinterpret_cast<ELF *>(&bi[si->bm.setup_offset]);
+        db<Setup>(WRN) << "After ELF Cast!" << endl;
         if(!stp_elf->valid()) {
+            db<Setup>(WRN) << "Inside Valid!" << endl;
             db<Setup>(ERR) << "SETUP ELF image is corrupted!" << endl;
             _panic();
         }
+
+        db<Setup>(WRN) << "Before Setup Elf!" << endl;
 
         si->lm.stp_entry = stp_elf->entry();
         si->lm.stp_segments = stp_elf->segments();
@@ -323,6 +275,7 @@ void Setup::build_lm()
             }
         }
     }
+    db<Setup>(WRN) << "After Boot Info!" << endl;
 
     // Check INIT integrity and get the size of its segments
     si->lm.ini_entry = 0;
@@ -352,6 +305,7 @@ void Setup::build_lm()
             }
         }
     }
+    db<Setup>(ERR) << "Check Segment integrity!" << endl;
 
     // Check SYSTEM integrity and get the size of its segments
     si->lm.sys_entry = 0;
@@ -383,6 +337,7 @@ void Setup::build_lm()
             }
         }
     }
+    db<Setup>(ERR) << "Check Application integrity!" << endl;
 
     // Check APPLICATION integrity and get the size of its segments
     for(unsigned i=0; i < si->bm.n_apps; i++){
@@ -413,6 +368,8 @@ void Setup::build_lm()
             }
         }
     }
+    db<Setup>(WRN) << "Finished Building Map!" << endl;
+
 }
 
 void Setup::init_mmu()
@@ -466,23 +423,23 @@ void Setup::init_mmu()
 
     kout << "Page Directory End Address" << PD2_ADDR << endl;
 
-    db<Setup>(INF) << "Set SATP" << endl;
+    db<Setup>(WRN) << "Set SATP" << endl;
     // Set SATP and enable paging
     CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
 
-    db<Setup>(INF) << "Flush TLB" << endl;
+    db<Setup>(WRN) << "Flush TLB" << endl;
     // Flush TLB to ensure we've got the right memory organization
     MMU::flush_tlb();
 }
 
 void Setup::call_next()
 {
-    db<Setup>(INF) << "SETUP almost ready!" << endl;
+    db<Setup>(WRN) << "SETUP almost ready!" << endl;
 
     CPU::sie(CPU::SSI | CPU::STI | CPU::SEI);
     CPU::sstatus(CPU::SPP_S);
 
-    CPU::sepc(CPU::Reg(&_start));
+    CPU::sepc(si->lm.ini_entry);
     CLINT::stvec(CLINT::DIRECT, CPU::Reg(&_int_entry));
 
     CPU::sret();

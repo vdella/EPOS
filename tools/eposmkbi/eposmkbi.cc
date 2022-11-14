@@ -178,6 +178,7 @@ int main(int argc, char **argv)
     si.bm.space_x  = CONFIG.space_x;
     si.bm.space_y  = CONFIG.space_y;
     si.bm.space_z  = CONFIG.space_z;
+    si.bm.n_apps   = argc-3;
     for(unsigned int i = 0; i < 8; i++)
         si.bm.uuid[i]  = CONFIG.uuid[i];
 
@@ -563,7 +564,11 @@ template<typename T> bool add_boot_map(int fd, System_Info * si)
         return false;
     if(!put_number(fd, static_cast<T>(si->bm.system_offset)))
         return false;
-    if(!put_number(fd, static_cast<T>(si->bm.application_offset[0])))
+    for (int i = 0; i < 8; i++) {
+      if(!put_number(fd, static_cast<T>(si->bm.application_offset[i])))
+        return false;
+    }
+    if(!put_number(fd, static_cast<T>(si->bm.n_apps)))
         return false;
     if(!put_number(fd, static_cast<T>(si->bm.extras_offset)))
         return false;

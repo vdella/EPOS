@@ -9,7 +9,7 @@ __BEGIN_SYS
 template<> struct Traits<Build>: public Traits_Tokens
 {
     // Basic configuration
-    static const unsigned int MODE = LIBRARY;
+    static const unsigned int MODE = BUILTIN;
     static const unsigned int ARCHITECTURE = RV64;
     static const unsigned int MACHINE = RISCV;
     static const unsigned int MODEL = SiFive_U;
@@ -95,7 +95,7 @@ __BEGIN_SYS
 // API Components
 template<> struct Traits<Application>: public Traits<Build>
 {
-    static const unsigned int APP_HEAP = Traits<Machine>::APP_HEAP;
+    // static const unsigned long APP_HEAP = Traits<Machine>::APP_HEAP;
     static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
     static const unsigned int HEAP_SIZE = Traits<Machine>::HEAP_SIZE;
     static const unsigned int MAX_THREADS = Traits<Machine>::MAX_THREADS;
@@ -106,7 +106,7 @@ template<> struct Traits<System>: public Traits<Build>
     static const unsigned int mode = Traits<Build>::MODE;
     static const bool multithread = (Traits<Application>::MAX_THREADS > 1);
     static const bool multiheap = Traits<Scratchpad>::enabled;
-    static const bool multitask = !Traits<Scratchpad>::enabled;
+    static const bool multitask = Traits<Scratchpad>::enabled;
 
     static const unsigned long LIFE_SPAN = 1 * YEAR; // s
     static const unsigned int DUTY_CYCLE = 1000000; // ppm
