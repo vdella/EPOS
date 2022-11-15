@@ -10,7 +10,7 @@ __BEGIN_SYS
 struct Memory_Map
 {
 private:
-    static const bool emulated = (Traits<CPU>::WORD_SIZE != 64); // specifying a SiFive-U with RV32 sets QEMU machine to Virt
+    static const bool emulated = (Traits<CPU>::WORD_SIZE != 64); // specifying a SiFive-U with RV64 sets QEMU machine to Virt
 
 public:
     enum : unsigned long {
@@ -21,8 +21,8 @@ public:
         RAM_TOP         = Traits<Machine>::RAM_TOP,
         MIO_BASE        = Traits<Machine>::MIO_BASE,
         MIO_TOP         = Traits<Machine>::MIO_TOP,
-        BOOT_STACK      = RAM_TOP,                                     // will be used as the stack's base, not the stack pointer
-        PAGE_TABLES     = BOOT_STACK - 64 * 1024 - ((1 + 4 + (4*512)) * 4096),
+        BOOT_STACK      = RAM_TOP,                                     // will be used as the stack pointer
+        PAGE_TABLES     = BOOT_STACK - 64 * 1024 - ((1 + 512 + (512*512)) * 4096),
         FREE_BASE       = RAM_BASE,
         FREE_TOP        = BOOT_STACK,
 
@@ -58,17 +58,6 @@ public:
 
         IO              = Traits<Machine>::IO,
 
-        // SYS             = Traits<Machine>::SYS,
-        // SYS_CODE        = Traits<System>::multitask ? SYS + 0x00000000 : NOT_USED,
-        // SYS_INFO        = Traits<System>::multitask ? SYS + 1 * 1024 * 1024 : NOT_USED,
-        // SYS_PT          = Traits<System>::multitask ? SYS_INFO + 4 * 1024 : NOT_USED,
-        // SYS_PD1         = Traits<System>::multitask ? SYS_PT + 4 * 1024 : NOT_USED,
-        // SYS_PD2         = Traits<System>::multitask ? SYS_PD1 + 4 * 1024 : NOT_USED,
-        // SYS_DATA        = Traits<System>::multitask ? SYS_PD2 + 4 * 1024 : NOT_USED,
-        // SYS_STACK       = Traits<System>::multitask ? SYS_INFO + 1 * 1024 * 1024 : NOT_USED,
-        // SYS_HEAP        = Traits<System>::multitask ? SYS_STACK + 2 * 1024 * 1024 : NOT_USED,
-        // SYS_HIGH        = 0xffffffffffffffff,
-
         SYS = Traits<Machine>::SYS,
         SYS_CODE = SYS,
         SYS_DATA = Traits<Machine>::SYS_DATA,
@@ -77,16 +66,6 @@ public:
         SYS_STACK = NOT_USED,
         SYS_HEAP = NOT_USED,
 
-        // SYS             = Traits<Machine>::SYS,
-        // SYS_CODE        = SYS,
-        // SYS_INFO        = SYS + 1 * 1024 * 1024,
-        // SYS_PT          = SYS_INFO + 4 * 1024,
-        // SYS_PD1         = SYS_PT + 4 * 1024,
-        // SYS_PD2         = SYS_PD1 + 4 * 1024,
-        // SYS_DATA        = SYS_PD2 + 4 * 1024,
-        // SYS_STACK       = SYS_INFO + 1 * 1024 * 1024,
-        // SYS_HEAP        = SYS_STACK + 2 * 1024 * 1024,
-        // SYS_HIGH        = 0xffffffffffffffff,
     };
 };
 

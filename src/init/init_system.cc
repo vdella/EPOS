@@ -44,8 +44,6 @@ public:
           System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
 
         }
-            // System::_heap = new (&System::_preheap[0]) Heap(Address_Space(MMU::current()).attach(new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS)));
-            // System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
         db<Init>(INF) << "Heap Size: " << HEAP_SIZE << "Pages : " << MMU::pages(HEAP_SIZE) << endl;
         db<Init>(WRN) << "Initializing the machine: " << endl;
         Machine::init();

@@ -381,7 +381,7 @@ lib%.o: lib%.cc
 		$(MKBI) $@ hello 
 
 %.hex: %
-		$(OBJCOPY) -I elf32-$(ARCH_ENDIANESS) -O ihex $< $<.tmp
+		$(OBJCOPY) -I elf64-$(ARCH_ENDIANESS) -O ihex $< $<.tmp
 		$(MKBI) $@ $<.tmp
 		$(CLEAN) $<.tmp
 

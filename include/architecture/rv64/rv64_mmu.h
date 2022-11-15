@@ -298,7 +298,7 @@ public:
     static Phy_Addr alloc(unsigned int bytes = 1)
     {
         Phy_Addr phy(false);
-        int size = 10;
+        int size = 0;
         if (bytes)
         {
             List::Element *e = _free.search_decrementing(bytes);
@@ -347,6 +347,8 @@ public:
     }
 
     static unsigned int allocable() { return _free.head() ? _free.head()->size() : 0; }
+
+    static void master(Page_Directory * pd) {_master = pd;}
 
     static Page_Directory *volatile current() { return static_cast<Page_Directory *volatile>(phy2log(CPU::pdp())); }
 
