@@ -165,7 +165,7 @@ public:
     class Directory
     {
     public:
-        Directory() : _pd(phy2log(calloc(1))), _free(true)
+        Directory() : _pd(phy2log(calloc(513))), _free(true)
         {
             for (unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++)
             {
@@ -272,14 +272,13 @@ public:
                 return true;
             }
 
-            Page_Directory * pd1 = new ((void*)(_pd + lvl2 * PAGE_SIZE)) Page_Directory();
+            Page_Directory * pd1 = new ((void*)(_pd + (lvl2 + 1) * PAGE_SIZE)) Page_Directory();
             _pd->remap(pd1, flags, lvl2, lvl2+1);
             return attach(lvl2, lvl1, pt, n, flags);
         }
 
         void detach(unsigned int lvl2, unsigned int lvl1, Page_Table *pt, unsigned int n)
         {
-
             Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[lvl2]))) Page_Directory();
             for (unsigned int i = lvl1; i < lvl1 + n; i++)
             {

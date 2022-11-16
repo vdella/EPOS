@@ -455,7 +455,7 @@ void _entry() // machine mode
 
     // need to check?
     // set the stack pointer, thus creating a stack for SETUP
-    CPU::sp(Memory_Map::BOOT_STACK - Traits<Machine>::STACK_SIZE);
+    CPU::sp(Memory_Map::BOOT_STACK - Traits<Machine>::STACK_SIZE - sizeof(long));
 
     // Set up the Physical Memory Protection registers correctly
     // A = NAPOT, X, R, W

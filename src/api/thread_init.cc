@@ -24,8 +24,8 @@ void Thread::init()
 
         for(unsigned i = 0; i < si->bm.n_apps; i++) {
              // We need W permission to load the segment
-            Segment * code_seg = new (SYSTEM) Segment(64*4096, MMU::RV64_Flags::UA);
-            Segment * data_seg = new (SYSTEM) Segment(64*4096, MMU::RV64_Flags::UA);
+            Segment * code_seg = new (SYSTEM) Segment(4*1024*1024, MMU::RV64_Flags::UA);
+            Segment * data_seg = new (SYSTEM) Segment(4*1024*1024, MMU::RV64_Flags::UA);
             Task * app_task =  new (SYSTEM) Task(code_seg, data_seg);
 
             db<Setup>(TRC) << "app_task = " << hex << app_task << endl;
