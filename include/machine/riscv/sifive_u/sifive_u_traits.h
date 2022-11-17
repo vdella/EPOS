@@ -21,6 +21,10 @@ struct Traits<Machine> : public Traits<Machine_Common>
 public:
     static const unsigned long NOT_USED = 0xffffffffffffffff;
 
+    // Boot Image
+    static const unsigned long BOOT_LENGTH_MIN   = NOT_USED;
+    static const unsigned long BOOT_LENGTH_MAX   = NOT_USED;
+
     // Physical Memory 27FFFFFFF
     static const unsigned long RAM_BASE = 0x0000000080000000; // 2 GB
     static const unsigned long RAM_TOP =  0x00000000ffffffff;  // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)

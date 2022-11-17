@@ -40,14 +40,14 @@ struct Configuration
     unsigned long  mem_top;
     unsigned long  mio_base;
     unsigned long  mio_top;
+    unsigned long boot_length_min;
+    unsigned long boot_length_max;
     short          node_id;   // nodes in SAN (-1 => dynamic)
     int            space_x;   // Spatial coordinates of a node (-1 => mobile)
     int            space_y;
     int            space_z;
     unsigned char  uuid[8];   // EPOS image Universally Unique Identifier
     bool           need_boot;
-    unsigned int   boot_length_min;
-    unsigned int   boot_length_max;
 };
 
 // System_Info
@@ -159,6 +159,8 @@ int main(int argc, char **argv)
     fprintf(out, "  Model: \t%s\n", CONFIG.mmod);
     fprintf(out, "  Processor: \t%s (%d bits, %s-endian)\n", CONFIG.arch, CONFIG.word_size, CONFIG.endianess ? "little" : "big");
     fprintf(out, "  Memory: \t%ld KBytes\n", (CONFIG.mem_top - CONFIG.mem_base) / 1024);
+    if((CONFIG.boot_length_min + CONFIG.boot_length_max) > 0)
+        fprintf(out, "  Boot Length: %li - %li (min - max) KBytes\n", CONFIG.boot_length_min, CONFIG.boot_length_max);
     if(CONFIG.node_id != -1)
         fprintf(out, "  Node id: \t%d\n", CONFIG.node_id);
     if(CONFIG.space_x != -1)
@@ -187,7 +189,7 @@ int main(int argc, char **argv)
     fprintf(out, "\n  Creating EPOS bootable image in \"%s\":\n", argv[optind + 1]);
 
     // Add BOOT
-    if(CONFIG.need_boot) {
+    if(CONFIG.boot_length_max > 0) {
         sprintf(file, "%s/img/boot_%s", argv[optind], CONFIG.mmod);
         fprintf(out, "    Adding bootstrap \"%s\":", file);
         image_size += put_file(fd_img, file);
@@ -202,12 +204,28 @@ int main(int argc, char **argv)
     }
     unsigned int boot_size = image_size;
 
+    // Determine if System_Info is needed and how it must be handled
+    bool need_si = (!strcmp(CONFIG.mach, "pc") || !strcmp(CONFIG.mach, "riscv"));
+    bool si_in_setup = (need_si && (boot_size == 0)); // If the image contains a boot sector, then SI will be on a separate disk sector. Otherwise, it will be inside SETUP.
+
+    // Reserve space for System_Info if necessary
+    if(need_si && !si_in_setup) {
+        if(sizeof(System_Info) <= MAX_SI_LEN) {
+            image_size += pad(fd_img, MAX_SI_LEN);
+        } else {
+            fprintf(out, " failed!\n");
+            fprintf(err, "System_Info structure is too large (%li)!\n", sizeof(System_Info));
+            return 1;
+        }
+    }
+
     // Add SETUP
     sprintf(file, "%s/img/setup_%s", argv[optind], CONFIG.mmod);
     if(file_exist(file)) {
-        si.bm.setup_offset = image_size - boot_size;
+        si.bm.setup_offset = -1;
         fprintf(out, "    Adding setup \"%s\":", file);
         image_size += put_file(fd_img, file);
+        image_size += pad(fd_img, 4*4096 - (image_size % 4096));
     } else
         si.bm.setup_offset = -1;
 
@@ -256,48 +274,55 @@ int main(int argc, char **argv)
     si.bm.img_size = image_size - boot_size;
 
     // Add System_Info
-    unsigned int si_offset = boot_size;
-    fprintf(out, "    Adding system info");
-    fprintf(out, " to SETUP:");
-    struct stat stat;
-    if(fstat(fd_img, &stat) < 0)  {
-        fprintf(out, " failed! (stat)\n");
-        return 0;
-    }
-    char * buffer = (char *) malloc(stat.st_size);
-    if(!buffer) {
-        fprintf(out, " failed! (malloc)\n");
-        return 0;
-    }
-    memset(buffer, '\1', stat.st_size);
-    lseek(fd_img, 0, SEEK_SET);
-    if(read(fd_img, buffer, stat.st_size) < 0) {
-        fprintf(out, " failed! (read)\n");
-        free(buffer);
-        return 0;
-    }
+    if(need_si) {
+        unsigned int si_offset = boot_size;
+        fprintf(out, "    Adding system info");
+        if(si_in_setup) {
+            fprintf(out, " to SETUP:");
+            struct stat stat;
+            if(fstat(fd_img, &stat) < 0)  {
+                fprintf(out, " failed! (stat)\n");
+                return 0;
+            }
+            char * buffer = (char *) malloc(stat.st_size);
+            if(!buffer) {
+                fprintf(out, " failed! (malloc)\n");
+                return 0;
+            }
+            memset(buffer, '\1', stat.st_size);
+            lseek(fd_img, 0, SEEK_SET);
+            if(read(fd_img, buffer, stat.st_size) < 0) {
+                fprintf(out, " failed! (read)\n");
+                free(buffer);
+                return 0;
+            }
 
-    char placeholder[] = "<System_Info placeholder>";
-    char * setup_si = reinterpret_cast<char *>(memmem(buffer, stat.st_size, placeholder, strlen(placeholder)));
-    if(setup_si) {
-        si_offset = setup_si - buffer;
-    } else {
-        fprintf(out, " failed! (SETUP does not contain System_Info placeholder)\n");
-        free(buffer);
-        return 0;
+            char placeholder[] = "System_Info placeholder. Actual System_Info will be added by mkbi!";
+            char * setup_si = reinterpret_cast<char *>(memmem(buffer, stat.st_size, placeholder, strlen(placeholder)));
+            if(setup_si) {
+                si_offset = setup_si - buffer;
+            } else {
+                fprintf(out, " failed! (SETUP does not contain System_Info placeholder)\n");
+                free(buffer);
+                return 0;
+            }
+        } else {
+            fprintf(out, " to image:");
+            si_offset = boot_size;
+        }
+        if(lseek(fd_img, si_offset, SEEK_SET) < 0) {
+            fprintf(err, "Error: can't seek the boot image!\n");
+            return 1;
+        }
+        switch(CONFIG.word_size) {
+        case  8: if(!add_boot_map<char>(fd_img, &si)) return 1; break;
+        case 16: if(!add_boot_map<short>(fd_img, &si)) return 1; break;
+        case 32: if(!add_boot_map<long>(fd_img, &si)) return 1; break;
+        case 64: if(!add_boot_map<long long>(fd_img, &si)) return 1; break;
+        default: return 1;
+        }
+        fprintf(out, " done.\n");
     }
-    if(lseek(fd_img, si_offset, SEEK_SET) < 0) {
-        fprintf(err, "Error: can't seek the boot image!\n");
-        return 1;
-    }
-    switch(CONFIG.word_size) {
-    case  8: if(!add_boot_map<char>(fd_img, &si)) return 1; break;
-    case 16: if(!add_boot_map<short>(fd_img, &si)) return 1; break;
-    case 32: if(!add_boot_map<long>(fd_img, &si)) return 1; break;
-    case 64: if(!add_boot_map<long long>(fd_img, &si)) return 1; break;
-    default: return 1;
-    }
-    fprintf(out, " done.\n");
 
     // Adding MACH specificities
     fprintf(out, "\n  Adding specific boot features of \"%s\":", CONFIG.mmod);
@@ -305,8 +330,6 @@ int main(int argc, char **argv)
         fprintf(err, "Error: specific features error!\n");
         return 1;
     }
-    fprintf(out, " done.\n");
-
     // Show System Info
     if(print_si) {
         fprintf(out, "  System_Info->Boot_Map:\n");
@@ -490,6 +513,28 @@ bool parse_config(FILE * cfg_file, Configuration * cfg)
     }
     cfg->mio_top = strtoll(token, 0, 16);
 
+    // Boot Length Min
+    if(fgets(line, 256, cfg_file) != line)
+        cfg->boot_length_min = 0;
+    else {
+        token = strtok(line, "=");
+        if(!strcmp(token, "BOOT_LENGTH_MIN") && (token = strtok(NULL, "\n")))
+            cfg->boot_length_min = atoi(token);
+        else
+            cfg->boot_length_min = 0;
+    }
+
+    // Boot Length Max
+    if(fgets(line, 256, cfg_file) != line)
+        cfg->boot_length_max = 0;
+    else {
+        token = strtok(line, "=");
+        if(!strcmp(token, "BOOT_LENGTH_MAX") && (token = strtok(NULL, "\n")))
+            cfg->boot_length_max = atoi(token);
+        else
+            cfg->boot_length_max = 0;
+    }
+
     // Node Id
     if(fgets(line, 256, cfg_file) != line)
         cfg->node_id = -1; // get from net
@@ -514,15 +559,15 @@ bool parse_config(FILE * cfg_file, Configuration * cfg)
     }
 
     // Determine if BOOT is needed and how it must be handled
-    if(!strcmp(cfg->mach, "pc")) {
-        cfg->need_boot = true;
-        cfg->boot_length_min = 512;
-        cfg->boot_length_max = 512;
-    } else {
-        cfg->need_boot = false;
-        cfg->boot_length_min = 0;
-        cfg->boot_length_max = 0;
-    }
+    // if(!strcmp(cfg->mach, "pc")) {
+    //     cfg->need_boot = true;
+    //     cfg->boot_length_min = 512;
+    //     cfg->boot_length_max = 512;
+    // } else {
+    //     cfg->need_boot = false;
+    //     cfg->boot_length_min = 0;
+    //     cfg->boot_length_max = 0;
+    // }
 
     return true;
 }

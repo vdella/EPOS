@@ -23,4 +23,3 @@ extern "C" {
     void _print_preamble() {}
     void _print_trailler(bool error) { if(error) _panic(); }
 }
-
