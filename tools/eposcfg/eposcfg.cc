@@ -22,7 +22,7 @@ using namespace EPOS::S;
 using namespace EPOS::S::U;
 
 // Constants
-const unsigned int TOKENS = 31;
+const unsigned int TOKENS = 33;
 const unsigned int COMPONENTS = 64;
 const unsigned int STRING_SIZE = 128;
 
@@ -43,6 +43,7 @@ char tokens[TOKENS][STRING_SIZE] = {
     "MEM_SIZE_KB",
     "MIO_BASE",
     "MIO_TOP",
+    "MMODE_F",
     "MIO_SIZE",
     "MIO_SIZE_KB",
     "BOOT_STACK",
@@ -56,6 +57,8 @@ char tokens[TOKENS][STRING_SIZE] = {
     "SYS_DATA",
     "SYS_STACK",
     "SYS_HEAP",
+    "BOOT_LENGTH_MIN",
+    "BOOT_LENGTH_MAX",
     "EXPECTED_SIMULATION_TIME"
 };
 
@@ -208,6 +211,9 @@ void populate_strings()
     snprintf(string, STRING_SIZE, iformat, Memory_Map::RAM_TOP);
     set_token_value("RAM_TOP", string);
 
+    snprintf(string, STRING_SIZE, iformat, Memory_Map::MMODE_F);
+    set_token_value("MMODE_F", string);
+
     snprintf(string, STRING_SIZE, iformat, Memory_Map::RAM_TOP + 1 - Memory_Map::RAM_BASE);
     set_token_value("MEM_SIZE", string);
 
@@ -291,6 +297,18 @@ void populate_strings()
     else
         string[0] = '\0';
     set_token_value("SYS_HEAP", string);
+
+    if(Traits<Machine>::BOOT_LENGTH_MIN != Traits<Machine>::NOT_USED)
+      snprintf(string, STRING_SIZE, "%li", Traits<Machine>::BOOT_LENGTH_MIN);
+    else
+      string[0] = '\0';
+    set_token_value("BOOT_LENGTH_MIN", string);
+
+    if(Traits<Machine>::BOOT_LENGTH_MAX != Traits<Machine>::NOT_USED)
+      snprintf(string, STRING_SIZE, "%li", Traits<Machine>::BOOT_LENGTH_MAX);
+    else
+      string[0] = '\0';
+    set_token_value("BOOT_LENGTH_MAX", string);
 
     snprintf(string, STRING_SIZE, "%i", Traits<Build>::EXPECTED_SIMULATION_TIME);
     set_token_value("EXPECTED_SIMULATION_TIME", string);
@@ -465,4 +483,3 @@ int enable_component(const char * component)
 
     return i;
 }
-

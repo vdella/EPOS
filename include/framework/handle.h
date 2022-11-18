@@ -68,6 +68,14 @@ public:
 
     static Handle<Component> * self() { return new (_Stub::self()) Handled<Component>; }
 
+    // Display
+    static void putc(char c) {_Stub::putc(c); }
+    static void puts(const char * s) {_Stub::puts(s); }
+    static void clear() {_Stub::clear(); }
+    static void geometry(int * lines, int * columns) { _Stub::geometry(lines, columns); }
+    static void position(int * line, int * column) {_Stub::position(line, column); }
+    static void position(int line, int column) {_Stub::position(line, column); }
+    
     // Process management
     int priority() { return _stub->priority(); }
     void priority(int p) { _stub->priority(p); }
@@ -75,6 +83,7 @@ public:
     int pass() { return _stub->pass(); }
     void suspend() { _stub->suspend(); }
     void resume() { _stub->resume(); }
+    int state() { return _stub->state(); }
     static void yield() { _Stub::yield(); }
     static void exit(int r = 0) { _Stub::exit(r); }
     static volatile bool wait_next() { return _Stub::wait_next(); }
@@ -118,9 +127,14 @@ public:
     void lap() { _stub->lap(); }
     void stop() { _stub->stop(); }
 
-    int frequency() { return _stub->frequency(); }
-    int ticks() { return _stub->ticks(); }
+    unsigned long frequency() { return _stub->frequency(); }
+    Chronometer::Time_Stamp ticks() { return _stub->ticks(); }
     int read() { return _stub->read(); }
+    
+    Microsecond resolution() { return _stub->resolution(); }
+    Second now() { return _stub->now(); }
+    Clock::Date date() { return _stub->date(); }
+    void date(const Clock::Date & d) { _stub->date(d); }
 
     const Microsecond period() const { return _stub->period(); }
     void period(const Microsecond p) { _stub->period(p); }

@@ -31,6 +31,7 @@ extern "C"
     // SETUP entry point is in .init (and not in .text), so it will be linked first and will be the first function after the ELF header in the image
     void _entry() __attribute__((used, naked, section(".init")));
     void _setup();
+    void _print(const char * s) { Display::puts(s); }
     void _panic();
 
     // LD eliminates this variable while performing garbage collection, that's why the used attribute.
@@ -61,8 +62,12 @@ private:
     static const unsigned long PAGE_TABLES = Memory_Map::PAGE_TABLES;
     static const unsigned long INIT = Memory_Map::INIT;
     static const unsigned long SYS_INFO = Memory_Map::SYS_INFO;
+    static const unsigned long SYS_CODE = Memory_Map::SYS_CODE;
+    static const unsigned long SYS_DATA = Memory_Map::SYS_DATA;
+    static const unsigned long SYS_STACK = Memory_Map::SYS_STACK;
     static const unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
     static const unsigned int PD_ENTRIES = PT_ENTRIES;
+    static const unsigned int PAGE_SIZE = 4096;
 
     // Architecture Imports
     typedef CPU::Reg Reg;
@@ -153,19 +158,21 @@ void Setup::say_hi()
 
 void Setup::load_parts()
 {
+    db<Setup>(TRC) << "load_parts" << endl;
+
     // Relocate System_Info
-    if(sizeof(System_Info) > 4096) {
+    if(sizeof(System_Info) > PAGE_SIZE) {
         db<Setup>(ERR) << "System_Info is bigger than a page (" << sizeof(System_Info) << ")!" << endl;
         _panic();
     }
     memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
 
-    // Load INIT
     ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
     ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
 
+    // Load INIT
     if(si->lm.has_ini) {
-        db<Setup>(WRN) << "Setup_SifiveE::load_init()" << endl;
+        db<Setup>(TRC) << "Setup_SifiveE::load_init()" << endl;
         if(ini_elf->load_segment(0) < 0) {
             db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
             _panic();
@@ -177,16 +184,11 @@ void Setup::load_parts()
                 _panic();
             }
     }
-
-    if((long unsigned int)ini_elf->segment_size(0) > sys_elf->segment_address(0) - ini_elf->segment_address(0)) {
-        db<Setup>(ERR) << "init is larger than its reserved memory" << endl;
-        _panic();
-    }
-    db<Setup>(WRN) << "init has " << hex << sys_elf->segment_address(0) - ini_elf->segment_address(0) - ini_elf->segment_size(0) << " unused bytes of memory" << endl;
+    db<Setup>(TRC) << "init has " << hex << sys_elf->segment_address(0) - ini_elf->segment_address(0) - ini_elf->segment_size(0) << " unused bytes of memory" << endl;
 
     // Load SYSTEM
     if(si->lm.has_sys) {
-        db<Setup>(WRN) << "Setup_SifiveE::load_system()" << endl;
+        db<Setup>(TRC) << "Setup_SifiveE::load_system()" << endl;
         if(sys_elf->load_segment(0) < 0) {
             db<Setup>(ERR) << "system code segment was corrupted during SETUP!" << endl;
             _panic();
@@ -197,24 +199,14 @@ void Setup::load_parts()
                 _panic();
             }
     }
-
-    if((long unsigned int)sys_elf->segment_size(0) > sys_elf->segment_address(1) - sys_elf->segment_address(0)) {
-        db<Setup>(ERR) << "sys code is larger than its reserved memory" << endl;
-        _panic();
-    }
-    db<Setup>(WRN) << "sys code has " << hex << sys_elf->segment_address(1) - sys_elf->segment_address(0) - sys_elf->segment_size(0) << " unused bytes of memory" << endl;
-
-    if((long unsigned int)ini_elf->segment_size(1) > sys_elf->segment_address(1) + 0x00100000 - sys_elf->segment_address(1)) {
-        db<Setup>(ERR) << "init is larger than its reserved memory" << endl;
-        _panic();
-    }
-    db<Setup>(WRN) << "sys data has " << hex << sys_elf->segment_address(1) + 0x00100000 - sys_elf->segment_address(1) - ini_elf->segment_size(1) << " unused bytes of memory" << endl;
+    db<Setup>(TRC) << "sys code has " << hex << sys_elf->segment_address(1) - sys_elf->segment_address(0) - sys_elf->segment_size(0) << " unused bytes of memory" << endl;
+    db<Setup>(TRC) << "sys data has " << hex << 0x00100000 - sys_elf->segment_size(1) << " unused bytes of memory" << endl;
 }
 
 
 void Setup::build_lm()
 {
-    db<Setup>(WRN) << "Build Load Map!" << endl;
+    db<Setup>(TRC) << "Build Load Map" << endl;
 
     // Get boot image structure
     si->lm.has_stp = (si->bm.setup_offset != -1u);
@@ -223,45 +215,14 @@ void Setup::build_lm()
     si->lm.has_app = (si->bm.application_offset[0] != -1u);
     si->lm.has_ext = (si->bm.extras_offset != -1u);
 
-    // Check SETUP integrity and get the size of its segments
+    bi = reinterpret_cast<char *>(Traits<Machine>::RAM_BASE); // bi is loaded at MEM_BASE
+    // Setup won't be loaded since it is already present on binary form at the boot image
     si->lm.stp_entry = 0;
     si->lm.stp_segments = 0;
     si->lm.stp_code = ~0U;
     si->lm.stp_code_size = 0;
     si->lm.stp_data = ~0U;
     si->lm.stp_data_size = 0;
-
-    db<Setup>(WRN) << "Before Boot Info!" << endl;
-
-
-    bi = reinterpret_cast<char *>(Traits<Machine>::RAM_BASE); // bi is loaded at MEM_BASE
-    if(si->lm.has_stp) {
-      db<Setup>(WRN) << "Before ELF Cast!" << endl;
-        ELF * stp_elf = reinterpret_cast<ELF *>(&bi[si->bm.setup_offset]);
-        db<Setup>(WRN) << "After ELF Cast!" << endl;
-        if(!stp_elf->valid()) {
-            db<Setup>(WRN) << "Inside Valid!" << endl;
-            db<Setup>(ERR) << "SETUP ELF image is corrupted!" << endl;
-            _panic();
-        }
-
-        db<Setup>(WRN) << "Before Setup Elf!" << endl;
-
-        si->lm.stp_entry = stp_elf->entry();
-        si->lm.stp_segments = stp_elf->segments();
-        si->lm.stp_code = stp_elf->segment_address(0);
-        si->lm.stp_code_size = stp_elf->segment_size(0);
-        if(stp_elf->segments() > 1) {
-            for(int i = 1; i < stp_elf->segments(); i++) {
-                if(stp_elf->segment_type(i) != PT_LOAD)
-                    continue;
-                if(stp_elf->segment_address(i) < si->lm.stp_data)
-                    si->lm.stp_data = stp_elf->segment_address(i);
-                si->lm.stp_data_size += stp_elf->segment_size(i);
-            }
-        }
-    }
-    db<Setup>(WRN) << "After Boot Info!" << endl;
 
     // Check INIT integrity and get the size of its segments
     si->lm.ini_entry = 0;
@@ -270,13 +231,14 @@ void Setup::build_lm()
     si->lm.ini_code_size = 0;
     si->lm.ini_data = ~0U;
     si->lm.ini_data_size = 0;
+    db<Setup>(WRN) << "Before Init Elf" << endl;
     if(si->lm.has_ini) {
         ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
         if(!ini_elf->valid()) {
             db<Setup>(ERR) << "INIT ELF image is corrupted!" << endl;
             _panic();
         }
-
+        db<Setup>(WRN) << "After Init Valid" << endl;
         si->lm.ini_entry = ini_elf->entry();
         si->lm.ini_segments = ini_elf->segments();
         si->lm.ini_code = ini_elf->segment_address(0);
@@ -290,9 +252,16 @@ void Setup::build_lm()
                 si->lm.ini_data_size += ini_elf->segment_size(i);
             }
         }
+        if(si->lm.ini_code != INIT) {
+            db<Setup>(ERR) << "Init code segment address (" << reinterpret_cast<void *>(si->lm.ini_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(INIT) << ")!" << endl;
+            _panic();
+        }
+        if(si->lm.ini_code + si->lm.ini_code_size > SYS_CODE) {
+            db<Setup>(ERR) << "Init code segment is too large!" << endl;
+            _panic();
+        }
     }
-    db<Setup>(ERR) << "Check Segment integrity!" << endl;
-
+    db<Setup>(WRN) << "Check System integrity" << endl;
     // Check SYSTEM integrity and get the size of its segments
     si->lm.sys_entry = 0;
     si->lm.sys_segments = 0;
@@ -300,7 +269,8 @@ void Setup::build_lm()
     si->lm.sys_code_size = 0;
     si->lm.sys_data = ~0U;
     si->lm.sys_data_size = 0;
-
+    si->lm.sys_stack = SYS_STACK;
+    si->lm.sys_stack_size = Traits<System>::STACK_SIZE * si->bm.n_cpus;
     if(si->lm.has_sys) {
         ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
         if(!sys_elf->valid()) {
@@ -321,8 +291,24 @@ void Setup::build_lm()
                 si->lm.sys_data_size += sys_elf->segment_size(i);
             }
         }
+
+        if(si->lm.sys_code != SYS_CODE) {
+            db<Setup>(ERR) << "OS code segment address (" << reinterpret_cast<void *>(si->lm.sys_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_CODE) << ")!" << endl;
+            _panic();
+        }
+        if(si->lm.sys_code + si->lm.sys_code_size > si->lm.sys_data) {
+            db<Setup>(ERR) << "OS code segment is too large!" << endl;
+            _panic();
+        }
+        if(si->lm.sys_data_size > 0x100000) {
+            db<Setup>(ERR) << "OS data segment is larger than 1Mb!" << endl;
+            _panic();
+        }
+        if(si->lm.sys_data != SYS_DATA) {
+            db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
+            _panic();
+        }
     }
-    db<Setup>(ERR) << "Check Application integrity!" << endl;
 
     // Check APPLICATION integrity and get the size of its segments
     for(unsigned i=0; i < si->bm.n_apps; i++){
@@ -343,24 +329,246 @@ void Setup::build_lm()
             si->lm.app[i].app_code = app_elf->segment_address(0);
             si->lm.app[i].app_code_size = app_elf->segment_size(0);
             if(app_elf->segments() > 1) {
-                for(int i = 1; i < app_elf->segments(); i++) {
-                    if(app_elf->segment_type(i) != PT_LOAD)
+                for(int j = 1; j < app_elf->segments(); j++) {
+                    if(app_elf->segment_type(j) != PT_LOAD) {
                         continue;
-                    if(app_elf->segment_address(i) < si->lm.app[i].app_data)
-                        si->lm.app[i].app_data = app_elf->segment_address(i);
-                    si->lm.app[i].app_data_size += app_elf->segment_size(i);
+                    }
+                    if(app_elf->segment_address(j) < si->lm.app[i].app_data)
+                        si->lm.app[i].app_data = app_elf->segment_address(j);
+                    si->lm.app[i].app_data_size += app_elf->segment_size(j);
                 }
+            }
+            if(si->lm.app[i].app_code != APP_CODE) {
+                db<Setup>(ERR) << "App code segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_CODE) << ")!" << endl;
+                _panic();
+            }
+            if(si->lm.app[i].app_code + si->lm.app[i].app_code_size > si->lm.app[i].app_data) {
+                db<Setup>(ERR) << "App code segment is too large!" << endl;
+                _panic();
+            }
+            if(si->lm.app[i].app_data != APP_DATA) {
+                db<Setup>(ERR) << "App data segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_DATA) << ")!" << endl;
+                _panic();
             }
         }
     }
-    db<Setup>(WRN) << "Finished Building Map!" << endl;
-
 }
+
+
+// void Setup::load_parts()
+// {
+//     // Relocate System_Info
+//     if(sizeof(System_Info) > 4096) {
+//         db<Setup>(ERR) << "System_Info is bigger than a page (" << sizeof(System_Info) << ")!" << endl;
+//         _panic();
+//     }
+//     memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
+//
+//     // Load INIT
+//     ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
+//     ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+//
+//     if(si->lm.has_ini) {
+//         db<Setup>(WRN) << "Setup_SifiveE::load_init()" << endl;
+//         if(ini_elf->load_segment(0) < 0) {
+//             db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
+//             _panic();
+//         }
+//
+//         for(int i = 1; i < ini_elf->segments(); i++)
+//             if(ini_elf->load_segment(i) < 0) {
+//                 db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
+//                 _panic();
+//             }
+//     }
+//
+//     if((long unsigned int)ini_elf->segment_size(0) > sys_elf->segment_address(0) - ini_elf->segment_address(0)) {
+//         db<Setup>(ERR) << "init is larger than its reserved memory" << endl;
+//         _panic();
+//     }
+//     db<Setup>(WRN) << "init has " << hex << sys_elf->segment_address(0) - ini_elf->segment_address(0) - ini_elf->segment_size(0) << " unused bytes of memory" << endl;
+//
+//     // Load SYSTEM
+//     if(si->lm.has_sys) {
+//         db<Setup>(WRN) << "Setup_SifiveE::load_system()" << endl;
+//         if(sys_elf->load_segment(0) < 0) {
+//             db<Setup>(ERR) << "system code segment was corrupted during SETUP!" << endl;
+//             _panic();
+//         }
+//         for(int i = 1; i < sys_elf->segments(); i++)
+//             if(sys_elf->load_segment(i) < 0) {
+//                 db<Setup>(ERR) << "system data segment was corrupted during SETUP!" << endl;
+//                 _panic();
+//             }
+//     }
+//
+//     if((long unsigned int)sys_elf->segment_size(0) > sys_elf->segment_address(1) - sys_elf->segment_address(0)) {
+//         db<Setup>(ERR) << "sys code is larger than its reserved memory" << endl;
+//         _panic();
+//     }
+//     db<Setup>(WRN) << "sys code has " << hex << sys_elf->segment_address(1) - sys_elf->segment_address(0) - sys_elf->segment_size(0) << " unused bytes of memory" << endl;
+//
+//     if((long unsigned int)ini_elf->segment_size(1) > sys_elf->segment_address(1) + 0x00100000 - sys_elf->segment_address(1)) {
+//         db<Setup>(ERR) << "init is larger than its reserved memory" << endl;
+//         _panic();
+//     }
+//     db<Setup>(WRN) << "sys data has " << hex << sys_elf->segment_address(1) + 0x00100000 - sys_elf->segment_address(1) - ini_elf->segment_size(1) << " unused bytes of memory" << endl;
+// }
+//
+//
+// void Setup::build_lm()
+// {
+//     db<Setup>(WRN) << "Build Load Map!" << endl;
+//
+//     // Get boot image structure
+//     si->lm.has_stp = (si->bm.setup_offset != -1u);
+//     si->lm.has_ini = (si->bm.init_offset != -1u);
+//     si->lm.has_sys = (si->bm.system_offset != -1u);
+//     si->lm.has_app = (si->bm.application_offset[0] != -1u);
+//     si->lm.has_ext = (si->bm.extras_offset != -1u);
+//
+//     // Check SETUP integrity and get the size of its segments
+//     si->lm.stp_entry = 0;
+//     si->lm.stp_segments = 0;
+//     si->lm.stp_code = ~0U;
+//     si->lm.stp_code_size = 0;
+//     si->lm.stp_data = ~0U;
+//     si->lm.stp_data_size = 0;
+//
+//     db<Setup>(WRN) << "Before Boot Info!" << endl;
+//
+//
+//     bi = reinterpret_cast<char *>(Traits<Machine>::RAM_BASE); // bi is loaded at MEM_BASE
+//     if(si->lm.has_stp) {
+//       db<Setup>(WRN) << "Before ELF Cast!" << endl;
+//         ELF * stp_elf = reinterpret_cast<ELF *>(&bi[si->bm.setup_offset]);
+//         db<Setup>(WRN) << "After ELF Cast!" << endl;
+//         db<Setup>(WRN) << "Boot Info!" << bi << endl;
+//         db<Setup>(WRN) << "Boot Info Address!" << &bi << endl;
+//         db<Setup>(WRN) << "Setup Offset!" << si->bm.setup_offset << endl;
+//         // db<Setup>(WRN) << "Elf Address!" << &bi[si->bm.setup_offset] << endl;
+//         db<Setup>(WRN) << "ELF!" << stp_elf << endl;
+//
+//         ASM("stop:");
+//         if(!stp_elf->valid()) {
+//             db<Setup>(WRN) << "Inside Valid!" << endl;
+//             db<Setup>(ERR) << "SETUP ELF image is corrupted!" << endl;
+//             _panic();
+//         }
+//         db<Setup>(WRN) << "Before Setup Elf!" << endl;
+//
+//         si->lm.stp_entry = stp_elf->entry();
+//         si->lm.stp_segments = stp_elf->segments();
+//         si->lm.stp_code = stp_elf->segment_address(0);
+//         si->lm.stp_code_size = stp_elf->segment_size(0);
+//         if(stp_elf->segments() > 1) {
+//             for(int i = 1; i < stp_elf->segments(); i++) {
+//                 if(stp_elf->segment_type(i) != PT_LOAD)
+//                     continue;
+//                 if(stp_elf->segment_address(i) < si->lm.stp_data)
+//                     si->lm.stp_data = stp_elf->segment_address(i);
+//                 si->lm.stp_data_size += stp_elf->segment_size(i);
+//             }
+//         }
+//     }
+//     db<Setup>(WRN) << "After Boot Info!" << endl;
+//
+//     // Check INIT integrity and get the size of its segments
+//     si->lm.ini_entry = 0;
+//     si->lm.ini_segments = 0;
+//     si->lm.ini_code = ~0U;
+//     si->lm.ini_code_size = 0;
+//     si->lm.ini_data = ~0U;
+//     si->lm.ini_data_size = 0;
+//     if(si->lm.has_ini) {
+//         ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
+//         if(!ini_elf->valid()) {
+//             db<Setup>(ERR) << "INIT ELF image is corrupted!" << endl;
+//             _panic();
+//         }
+//
+//         si->lm.ini_entry = ini_elf->entry();
+//         si->lm.ini_segments = ini_elf->segments();
+//         si->lm.ini_code = ini_elf->segment_address(0);
+//         si->lm.ini_code_size = ini_elf->segment_size(0);
+//         if(ini_elf->segments() > 1) {
+//             for(int i = 1; i < ini_elf->segments(); i++) {
+//                 if(ini_elf->segment_type(i) != PT_LOAD)
+//                     continue;
+//                 if(ini_elf->segment_address(i) < si->lm.ini_data)
+//                     si->lm.ini_data = ini_elf->segment_address(i);
+//                 si->lm.ini_data_size += ini_elf->segment_size(i);
+//             }
+//         }
+//     }
+//     db<Setup>(ERR) << "Check Segment integrity!" << endl;
+//
+//     // Check SYSTEM integrity and get the size of its segments
+//     si->lm.sys_entry = 0;
+//     si->lm.sys_segments = 0;
+//     si->lm.sys_code = ~0U;
+//     si->lm.sys_code_size = 0;
+//     si->lm.sys_data = ~0U;
+//     si->lm.sys_data_size = 0;
+//
+//     if(si->lm.has_sys) {
+//         ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+//         if(!sys_elf->valid()) {
+//             db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
+//             _panic();
+//         }
+//
+//         si->lm.sys_entry = sys_elf->entry();
+//         si->lm.sys_segments = sys_elf->segments();
+//         si->lm.sys_code = sys_elf->segment_address(0);
+//         si->lm.sys_code_size = sys_elf->segment_size(0);
+//         if(sys_elf->segments() > 1) {
+//             for(int i = 1; i < sys_elf->segments(); i++) {
+//                 if(sys_elf->segment_type(i) != PT_LOAD)
+//                     continue;
+//                 if(sys_elf->segment_address(i) < si->lm.sys_data)
+//                     si->lm.sys_data = sys_elf->segment_address(i);
+//                 si->lm.sys_data_size += sys_elf->segment_size(i);
+//             }
+//         }
+//     }
+//     db<Setup>(ERR) << "Check Application integrity!" << endl;
+//
+//     // Check APPLICATION integrity and get the size of its segments
+//     for(unsigned i=0; i < si->bm.n_apps; i++){
+//         si->lm.app[i].app_entry = 0;
+//         si->lm.app[i].app_segments = 0;
+//         si->lm.app[i].app_code = ~0U;
+//         si->lm.app[i].app_code_size = 0;
+//         si->lm.app[i].app_data = ~0U;
+//         si->lm.app[i].app_data_size = 0;
+//         if(si->lm.has_app) {
+//             ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[i]]);
+//             if(!app_elf->valid()) {
+//                 db<Setup>(ERR) << "Application ELF image is corrupted!" << endl;
+//                 _panic();
+//             }
+//             si->lm.app[i].app_entry = app_elf->entry();
+//             si->lm.app[i].app_segments = app_elf->segments();
+//             si->lm.app[i].app_code = app_elf->segment_address(0);
+//             si->lm.app[i].app_code_size = app_elf->segment_size(0);
+//             if(app_elf->segments() > 1) {
+//                 for(int i = 1; i < app_elf->segments(); i++) {
+//                     if(app_elf->segment_type(i) != PT_LOAD)
+//                         continue;
+//                     if(app_elf->segment_address(i) < si->lm.app[i].app_data)
+//                         si->lm.app[i].app_data = app_elf->segment_address(i);
+//                     si->lm.app[i].app_data_size += app_elf->segment_size(i);
+//                 }
+//             }
+//         }
+//     }
+//     db<Setup>(WRN) << "Finished Building Map!" << endl;
+//
+// }
 
 void Setup::init_mmu()
 {
-
-    unsigned int PAGE_SIZE = 4 * 1024;
     unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
     unsigned long pages = MMU::pages(RAM_TOP + 1);
 

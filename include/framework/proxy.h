@@ -6,7 +6,6 @@
 #define __proxy_h
 
 #include "message.h"
-#include "ipc.h"
 
 __BEGIN_SYS
 
@@ -58,6 +57,14 @@ public:
 
     static Proxy<Component> * self() { return new (reinterpret_cast<void *>(static_invoke(SELF))) Proxied<Component>; }
 
+    // Display
+    static void putc(char c) { static_invoke(DISPLAY_PUTC, c); }
+    static void puts(const char * s) { static_invoke(DISPLAY_PUTS, s); }
+    static void clear() { static_invoke(DISPLAY_CLEAR); }
+    static void geometry(int * lines, int * columns) { static_invoke(DISPLAY_GEOMETRY, lines, columns); }
+    static void position(int * line, int * column) { static_invoke(DISPLAY_POSITION1, line, column); }
+    static void position(int line, int column) { static_invoke(DISPLAY_POSITION2, line, column); }
+    
     // Process management
     int state() { return invoke(THREAD_STATE); }
     int priority() { return invoke(THREAD_PRIORITY); }
@@ -103,15 +110,21 @@ public:
     // Timing
     template<typename T>
     static void delay(T t) { static_invoke(ALARM_DELAY, t); }
-
-    // Communication
-    template<typename ... Tn>
-    int send(Tn ... an) { return invoke(COMMUNICATOR_SEND, an ...); }
-    template<typename ... Tn>
-    int receive(Tn ... an) { return invoke(COMMUNICATOR_RECEIVE, an ...); }
-    template<typename ... Tn>
-    int reply(Tn ... an) { return invoke(COMMUNICATOR_REPLY, an ...); }
-
+    static Hertz alarm_frequency() { return static_invoke(ALARM_FREQUENCY); } 
+    
+    void reset() { invoke(CHRONOMETER_RESET); }
+    void start() { invoke(CHRONOMETER_START); }
+    void lap() { invoke(CHRONOMETER_LAP); }
+    void stop() { invoke(CHRONOMETER_STOP); }
+    unsigned long frequency() { return invoke(CHRONOMETER_FREQUENCY); }
+    Chronometer::Time_Stamp ticks() { return invoke(CHRONOMETER_TICKS); }
+    int read() { return invoke(CHRONOMETER_READ); }
+    
+    Microsecond resolution() { return invoke(CLOCK_RESOLUTION); }
+    Second now() { return invoke(CLOCK_NOW); }
+    Clock::Date date() { return invoke(CLOCK_DATE); }
+    void date(const Clock::Date & d) { invoke(CLOCK_DATE1, d); }
+    
     template<typename ... Tn>
     int read(Tn ... an) { return receive(an ...); }
     template<typename ... Tn>

@@ -8,10 +8,8 @@
 #include <memory.h>
 #include <time.h>
 #include <synchronizer.h>
-#include <communicator.h>
 
 #include "message.h"
-#include "ipc.h"
 
 __BEGIN_SYS
 
@@ -22,20 +20,12 @@ private:
 
 public:
     void exec() {
+        //!P4: Improve messages
         if(id().type() != UTILITY_ID)
             db<Framework>(TRC) << ":=>" << *reinterpret_cast<Message *>(this) << endl;
 
         if(id().type() < LAST_TYPE_ID) // in-kernel services
             (this->*_handlers[id().type()])();
-        else { // out-of-kernel (i.e. Dom0 or server) services
-                Message msg(*this); // copy message from user space to kernel
-                msg.id(Id(IPC_COMMUNICATOR_ID, id().unit()));
-                if(IPC::send(&msg)) { // 0 => no one listening
-                    Port<IPC> * comm = reinterpret_cast<Port<IPC> *>(IPC::observer(id().type())); // recall the Port<IPC> that got us here
-                    comm->receive(this); // copy from kernel to user
-                } else
-                    result(UNDEFINED);
-        }
 
         if(id().type() != UTILITY_ID)
             db<Framework>(TRC) << "<=:" << *reinterpret_cast<Message *>(this) << endl;
@@ -43,8 +33,9 @@ public:
 
 private:
     void handle_thread();
+    void handle_display();
     void handle_task();
-    void handle_active();
+    // void handle_active();
     void handle_address_space();
     void handle_segment();
     void handle_mutex();
@@ -53,13 +44,12 @@ private:
     void handle_clock();
     void handle_alarm();
     void handle_chronometer();
-    void handle_ipc();
+    // void handle_ipc();
     void handle_utility();
 
 private:
     static Member _handlers[LAST_TYPE_ID];
 };
-
 
 void Agent::handle_thread()
 {
@@ -70,8 +60,22 @@ void Agent::handle_thread()
     case CREATE1: {
         int (*entry)();
         in(entry);
-        id(Id(THREAD_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Thread>(Thread::Configuration(Thread::READY, Thread::NORMAL, WHITE, 0, 0), entry))));
+        id(Id(THREAD_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Thread>(Thread::Configuration(Thread::READY), entry))));
     } break;
+    case CREATE2: {
+        int (*entry)(void *);
+        void *params;
+        in(entry, params);
+        id(Id(THREAD_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Thread>(Thread::Configuration(Thread::READY), entry, params))));
+    } break;
+    // case CREATE4: {
+    //     int n, l, c;
+    //     int (*entry)(int, int, int);
+    //     in(entry,n,l,c);
+    //     //!P5: How would this fit with an Application loader which has to inform the priority of the main and idle threads
+    //     Adapter<Thread> * th = new Adapter<Thread>(Thread::Configuration(Thread::READY), entry, n, l, c);
+    //     id(Id(THREAD_ID, reinterpret_cast<Id::Unit_Id>(th)));
+    // } break;
     case DESTROY:
         delete thread;
         break;
@@ -85,6 +89,9 @@ void Agent::handle_thread()
         int p;
         in(p);
         thread->priority(Thread::Criterion(p));
+    } break;
+    case THREAD_STATE: {
+        res = thread->state();
     } break;
     case THREAD_JOIN:
         res = thread->join();
@@ -116,6 +123,48 @@ void Agent::handle_thread()
     result(res);
 };
 
+// This is not part of the API; it is here due to philosophers_dinner, temporarily.
+void Agent::handle_display()
+{
+    Result res = 0;
+
+    switch(method()) {
+    case DISPLAY_PUTC: {
+        char c;
+        in(c);
+        Display::putc(c);
+    } break;
+    case DISPLAY_PUTS: {
+        char * s;
+        in(s);
+        Display::puts(s);
+    } break;
+    case DISPLAY_CLEAR: {
+        Display::clear();
+    } break;
+    case DISPLAY_GEOMETRY: {
+        int * lines;
+        int * columns;
+        in(lines, columns);
+        Display::geometry(lines, columns);
+    } break;
+    case DISPLAY_POSITION1: {
+        int * line;
+        int * column;
+        in(line, column);
+        Display::position(line, column);
+    } break;
+    case DISPLAY_POSITION2: {
+        int line;
+        int column;
+        in(line, column);
+        Display::position(line, column);
+    } break;
+    default:
+        res = UNDEFINED;
+    }
+    result(res);
+}
 
 void Agent::handle_task()
 {
@@ -123,17 +172,13 @@ void Agent::handle_task()
     Result res = 0;
 
     switch(method()) {
-    case CREATE3: {
+    case CREATE2: {
         Segment * cs, * ds;
-        int (*entry)();
-        in(cs, ds, entry);
-        id(Id(TASK_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Task>(cs, ds, entry))));
+        in(cs, ds);
+        id(Id(TASK_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Task>(cs, ds))));
     } break;
     case DESTROY:
         delete task;
-        break;
-    case SELF:
-        id(Id(TASK_ID, reinterpret_cast<Id::Unit_Id>(Adapter<Task>::self())));
         break;
     case TASK_ADDRESS_SPACE:
         res = reinterpret_cast<int>(task->address_space());
@@ -150,9 +195,9 @@ void Agent::handle_task()
     case TASK_DATA:
         res = task->data();
         break;
-    case TASK_MAIN:
-        res = reinterpret_cast<int>(task->main());
-        break;
+    // case TASK_MAIN:
+    //     res = reinterpret_cast<int>(task->main());
+    //     break;
     default:
         res = UNDEFINED;
     }
@@ -161,10 +206,10 @@ void Agent::handle_task()
 };
 
 
-void Agent::handle_active()
-{
-    result(UNDEFINED);
-};
+// void Agent::handle_active()
+// {
+//     result(UNDEFINED);
+// };
 
 
 void Agent::handle_address_space()
@@ -228,24 +273,24 @@ void Agent::handle_segment()
     Result res = 0;
 
     switch(method()) {
-    case CREATE1: {
-        unsigned int bytes;
-        in(bytes);
-        id(Id(SEGMENT_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Segment>(bytes))));
-    } break;
+    // case CREATE1: {
+    //     unsigned int bytes;
+    //     in(bytes);
+    //     id(Id(SEGMENT_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Segment>(bytes))));
+    // } break;
     case CREATE2: { // *** indistinguishable ***
         unsigned int bytes;
     Segment::Flags flags;
     in(bytes, flags);
-    id(Id(SEGMENT_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Segment>(bytes, WHITE, flags))));
+    id(Id(SEGMENT_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Segment>(bytes, flags))));
     } break;
-    case CREATE3: { // *** indistinguishable ***
-        Segment::Phy_Addr phy_addr;
-    unsigned int bytes;
-    Segment::Flags flags;
-    in(phy_addr, bytes, flags);
-    id(Id(SEGMENT_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Segment>(phy_addr, bytes, flags))));
-    } break;
+    // case CREATE3: { // *** indistinguishable ***
+    //     Segment::Phy_Addr phy_addr;
+    // unsigned int bytes;
+    // Segment::Flags flags;
+    // in(phy_addr, bytes, flags);
+    // id(Id(SEGMENT_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Segment>(phy_addr, bytes, flags))));
+    // } break;
     case DESTROY:
         delete seg;
         break;
@@ -267,30 +312,101 @@ void Agent::handle_segment()
     result(res);
 };
 
-
 void Agent::handle_mutex()
 {
-    result(UNDEFINED);
-};
+    
+    Adapter<Mutex> * mutex = reinterpret_cast<Adapter<Mutex> *>(id().unit());
+    Result res = 0;
 
+    switch(method()) {
+    case CREATE: {
+        id(Id(MUTEX_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Mutex>())));
+    } break;
+    case DESTROY:
+        delete mutex;
+        break;
+    case SYNCHRONIZER_LOCK:
+        mutex->lock();
+        break;
+    case SYNCHRONIZER_UNLOCK:
+        mutex->unlock();
+        break;
+    default:
+        res = UNDEFINED;
+        break;
+    }
+
+    result(res);    
+};
 
 void Agent::handle_semaphore()
 {
-    result(UNDEFINED);
-};
+    Adapter<Semaphore> * semaphore = reinterpret_cast<Adapter<Semaphore> *>(id().unit());
+    Result res = 0;
 
+    switch(method()) {
+    case CREATE: {
+        id(Id(SEMAPHORE_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Semaphore>())));
+    } break;
+    case CREATE1: {
+        int v;
+        in(v);
+        id(Id(SEMAPHORE_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Semaphore>(v))));
+    } break;
+    case DESTROY:
+        delete semaphore;
+        break;
+    case SYNCHRONIZER_P:
+        semaphore->p();
+        break;
+    case SYNCHRONIZER_V:
+        semaphore->v();
+        break;
+    default:
+        res = UNDEFINED;
+    }
+    
+    result(res);    
+
+};
 
 void Agent::handle_condition()
 {
     result(UNDEFINED);
 };
 
-
 void Agent::handle_clock()
 {
-    result(UNDEFINED);
-};
+    Adapter<Clock> * clock = reinterpret_cast<Adapter<Clock> *>(id().unit());
+    Result res = 0;
 
+    switch(method()) {
+    case CREATE: {
+        id(Id(CLOCK_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Clock>())));
+    } break;
+    case DESTROY:
+        delete clock;
+        break;
+    case CLOCK_RESOLUTION:
+        res = clock->resolution();
+    break;
+    case CLOCK_NOW:
+        res = clock->now();
+    break;
+    case CLOCK_DATE:
+        // res = clock->date();
+    break;
+    case CLOCK_DATE1:{
+        // Date d;
+        // in(d);
+        // clock->date(d);
+    } break;
+    default:
+        res = UNDEFINED;
+    }
+
+    result(res);
+};
 
 void Agent::handle_alarm()
 {
@@ -337,99 +453,45 @@ void Agent::handle_alarm()
     result(res);
 };
 
-
 void Agent::handle_chronometer()
 {
-    result(UNDEFINED);
-};
-
-
-//void Agent::handle_communicator()
-//{
-//    Adapter<Port<IPC>> * comm = reinterpret_cast<Adapter<Port<IPC>> *>(id().unit());
-//    Result res = 0;
-//
-//    switch(method()) {
-//    case CREATE1: {
-//        Port<IPC>::Local_Address local;
-//        in(local);
-//        id(Id(COMMUNICATOR_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Port<IPC>>(local))));
-//
-//        if((local == DOM0_ID) && !_dom0)
-//            _dom0 = reinterpret_cast<Port<IPC> *>(id().unit());
-//    } break;
-//    case DESTROY: {
-//        delete comm;
-//    } break;
-//    case COMMUNICATOR_SEND: {
-//        IPC::Address to;
-//        void * data;
-//        unsigned int size;
-//        in(to, data, size);
-//        comm->send(to, data, size);
-//    } break;
-//    case COMMUNICATOR_RECEIVE: {
-//        IPC::Address from;
-//        void * data;
-//        unsigned int size;
-//        in(from, data, size);
-//        comm->receive(&from, data, size);
-//        out(from);
-//    } break;
-//    case COMMUNICATOR_BIND: {
-//        IPC::Address addr;
-//        Port<IPC> * comm;
-//        in(addr, comm);
-//        _dom0 = comm;
-//    } break;
-//    default:
-//        res = UNDEFINED;
-//    }
-//};
-
-
-void Agent::handle_ipc()
-{
-    Adapter<Port<IPC>> * comm = reinterpret_cast<Adapter<Port<IPC>> *>(id().unit());
+    Adapter<Chronometer> * chronometer = reinterpret_cast<Adapter<Chronometer> *>(id().unit());
     Result res = 0;
 
     switch(method()) {
-    case CREATE1: {
-        Port<IPC>::Address addr;
-        in(addr);
-        id(Id(IPC_COMMUNICATOR_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Port<IPC>>(addr))));
+    case CREATE: {
+        id(Id(CHRONOMETER_ID, reinterpret_cast<Id::Unit_Id>(new Adapter<Chronometer>())));
     } break;
-    case DESTROY: {
-        delete comm;
+    case DESTROY:
+        delete chronometer;
+        break;
+    case CHRONOMETER_FREQUENCY:
+        res = chronometer->frequency();
+    break;
+    case CHRONOMETER_RESET: {
+        chronometer->reset();
     } break;
-    case COMMUNICATOR_SEND: {
-        Message * usr_msg;
-        in(usr_msg);
-        Message sys_msg(*usr_msg);
-        if(id().unit() != IPC_COMMUNICATOR_ID)
-            sys_msg.id(Id(IPC_COMMUNICATOR_ID, id().unit()));
-        comm->send(&sys_msg);
+    case CHRONOMETER_START:
+        chronometer->start();
+    break;
+    case CHRONOMETER_LAP: {
+        chronometer->lap();
     } break;
-    case COMMUNICATOR_RECEIVE: {
-        Message * usr_msg;
-        in(usr_msg);
-        comm->receive(usr_msg);
+    case CHRONOMETER_STOP: {
+        chronometer->stop();
     } break;
-    case COMMUNICATOR_REPLY: {
-        Message * usr_msg;
-        in(usr_msg);
-        Message sys_msg(*usr_msg);
-        if(id().unit() != IPC_COMMUNICATOR_ID)
-            sys_msg.id(Id(IPC_COMMUNICATOR_ID, id().unit()));
-        comm->reply(&sys_msg);
+    case CHRONOMETER_READ: {
+        res = chronometer->read();
+    } break;
+    case CHRONOMETER_TICKS: {
+        res = chronometer->ticks();
     } break;
     default:
         res = UNDEFINED;
     }
 
     result(res);
-}
-
+};
 
 void Agent::handle_utility()
 {
