@@ -31,7 +31,7 @@ extern "C"
     // SETUP entry point is in .init (and not in .text), so it will be linked first and will be the first function after the ELF header in the image
     void _entry() __attribute__((used, naked, section(".init")));
     void _setup();
-    void _print(const char * s) { Display::puts(s); }
+    // void _print(const char * s) { Display::puts(s); }
     void _panic();
 
     // LD eliminates this variable while performing garbage collection, that's why the used attribute.

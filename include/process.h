@@ -207,7 +207,7 @@ public:
     }
 
     ~Task();
-
+    
     static void activate(volatile Task *t)
     {
         Task::_active = t;
