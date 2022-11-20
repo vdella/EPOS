@@ -12,10 +12,11 @@ __END_SYS
 
 __BEGIN_API
 
+//!ECALL:
 // Global objects
 __USING_UTIL
-OStream cout;
-OStream cerr;
+// OStream cout;
+// OStream cerr;
 
 __END_API
 
