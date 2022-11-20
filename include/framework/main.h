@@ -43,57 +43,54 @@ __BEGIN_API
 
 __USING_UTIL
 
-EXPORT(CPU);
-EXPORT(Handler);
-EXPORT(Function_Handler);
+// EXPORT(CPU);
+// EXPORT(Handler);
+// EXPORT(Function_Handler);
 
-EXPORT(System);
-EXPORT(Application);
-EXPORT(MMU);
+// EXPORT(System);
+// EXPORT(Application);
 
-BIND(Thread);
+// EXPORT(Id);
+
+// BIND(Thread);
+// BIND(Active);
 // BIND(Periodic_Thread);
 // BIND(RT_Thread);
-// BIND(ACTIVE);
-BIND(Task);
+// BIND(Task);
 
-BIND(Address_Space);
-BIND(Segment);
+// BIND(Address_Space);
+// BIND(Segment);
 
-BIND(Mutex);
-BIND(Semaphore);
+// BIND(Mutex);
+// BIND(Semaphore);
 // BIND(Condition);
 
-BIND(Clock);
-BIND(Chronometer);
-BIND(Alarm);
+// BIND(Clock);
+// BIND(Chronometer);
+// BIND(Alarm);
 // BIND(Delay);
 
-BIND(Display);
+// template<typename Channel, bool connectionless = Channel::connectionless>
+// class Link: public _SYS::Handle<_SYS::Link<Channel, connectionless>>
+// {
+// private:
+//     typedef typename _SYS::Handle<_SYS::Link<Channel, connectionless>> Base;
 
-// EXPORT(IPC);
+// public:
+//     template<typename ... Tn>
+//     Link(const Tn & ... an): Base(an ...) {};
+// };
 
-template<typename Channel, bool connectionless = Channel::connectionless>
-class Link: public _SYS::Handle<_SYS::Link<Channel, connectionless>>
-{
-private:
-    typedef typename _SYS::Handle<_SYS::Link<Channel, connectionless>> Base;
+// template<typename Channel, bool connectionless = Channel::connectionless>
+// class Port: public _SYS::Handle<_SYS::Port<Channel, connectionless>>
+// {
+// private:
+//     typedef typename _SYS::Handle<_SYS::Port<Channel, connectionless>> Base;
 
-public:
-    template<typename ... Tn>
-    Link(const Tn & ... an): Base(an ...) {};
-};
-
-template<typename Channel, bool connectionless = Channel::connectionless>
-class Port: public _SYS::Handle<_SYS::Port<Channel, connectionless>>
-{
-private:
-    typedef typename _SYS::Handle<_SYS::Port<Channel, connectionless>> Base;
-
-public:
-    template<typename ... Tn>
-    Port(const Tn & ... an): Base(an ...) {};
-};
+// public:
+//     template<typename ... Tn>
+//     Port(const Tn & ... an): Base(an ...) {};
+// };
 
 __END_API
 

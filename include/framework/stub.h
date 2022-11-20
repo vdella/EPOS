@@ -17,7 +17,17 @@ class Stub: public Adapter<Component>
 public:
     template<typename ... Tn>
     Stub(const Tn & ... an): Adapter<Component>(an ...) {}
+
+    // Dereferencing handles for constructors that take pointers to system objects
+    template<typename ... Tn>
+    Stub(const Stub<Segment, remote> & cs, const Stub<Segment, remote> & ds, const Tn & ... an): Proxy<Component>(cs.id().unit(), ds.id().unit(), an ...) {}
+    template<typename ... Tn>
+    Stub(const Stub<Task, remote> & t, const Tn & ... an): Proxy<Component>(t.id().unit(), an ...) {}
+
     ~Stub() {}
+
+    static Stub * share(const Id & id) { return reinterpret_cast<Stub *>(Adapter<Component>::share(id)); }
+    static Stub * share(Adapter<Component> * adapter) { return reinterpret_cast<Stub *>(Adapter<Component>::share(adapter)); }
 };
 
 template<typename Component>
@@ -27,11 +37,16 @@ public:
     template<typename ... Tn>
     Stub(const Tn & ... an): Proxy<Component>(an ...) {}
 
-    // Dereferencing stubs for Task(cs, ds, ...)
+    // Dereferencing handles for constructors that take pointers to system objects
     template<typename ... Tn>
     Stub(const Stub<Segment, true> & cs, const Stub<Segment, true> & ds, const Tn & ... an): Proxy<Component>(cs.id().unit(), ds.id().unit(), an ...) {}
+    template<typename ... Tn>
+    Stub(const Stub<Task, true> & t, const Tn & ... an): Proxy<Component>(t.id().unit(), an ...) {}
 
     ~Stub() {}
+
+    static Stub * share(const Id & id) { return reinterpret_cast<Stub *>(Proxy<Component>::share(id)); }
+    static Stub * share(Adapter<Component> * proxy) { return reinterpret_cast<Stub *>(Proxy<Component>::share(proxy->id())); }
 };
 
 __END_SYS

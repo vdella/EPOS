@@ -23,14 +23,14 @@ public:
 
     void * operator new(size_t s, void * adapter) {
         db<Framework>(TRC) << "Proxied::new(adapter=" << adapter << ")" << endl;
-        Framework::Element * el= Framework::_cache.search_key(reinterpret_cast<unsigned int>(adapter));
+        Framework::Element * el= Framework::_cache.search_key(reinterpret_cast<unsigned long>(adapter));
         void * proxy;
         if(el) {
             proxy = el->object();
             db<Framework>(INF) << "Proxied::new(adapter=" << adapter << ") => " << proxy << " (CACHED)" << endl;
         } else {
             proxy = new Proxy<Component>(Id(Type<Component>::ID, reinterpret_cast<Id::Unit_Id>(adapter)));
-            el = new Framework::Element(proxy, reinterpret_cast<unsigned int>(adapter));  // the proxied cache is insert-only; object are intentionally never deleted, since they have been created by SETUP!
+            el = new Framework::Element(proxy, reinterpret_cast<unsigned long>(adapter));  // the proxied cache is insert-only; object are intentionally never deleted, since they have been created by SETUP!
             Framework::_cache.insert(el);
         }
         return proxy;
@@ -57,14 +57,11 @@ public:
 
     static Proxy<Component> * self() { return new (reinterpret_cast<void *>(static_invoke(SELF))) Proxied<Component>; }
 
-    // Display
-    static void putc(char c) { static_invoke(DISPLAY_PUTC, c); }
-    static void puts(const char * s) { static_invoke(DISPLAY_PUTS, s); }
-    static void clear() { static_invoke(DISPLAY_CLEAR); }
-    static void geometry(int * lines, int * columns) { static_invoke(DISPLAY_GEOMETRY, lines, columns); }
-    static void position(int * line, int * column) { static_invoke(DISPLAY_POSITION1, line, column); }
-    static void position(int line, int column) { static_invoke(DISPLAY_POSITION2, line, column); }
-    
+    static Proxy * share(const Id & id) {
+        Proxy * proxy = new Proxy(id);
+        return proxy->invoke(SHARE) ? 0 : proxy;
+    }
+
     // Process management
     int state() { return invoke(THREAD_STATE); }
     int priority() { return invoke(THREAD_PRIORITY); }
@@ -110,21 +107,7 @@ public:
     // Timing
     template<typename T>
     static void delay(T t) { static_invoke(ALARM_DELAY, t); }
-    static Hertz alarm_frequency() { return static_invoke(ALARM_FREQUENCY); } 
-    
-    void reset() { invoke(CHRONOMETER_RESET); }
-    void start() { invoke(CHRONOMETER_START); }
-    void lap() { invoke(CHRONOMETER_LAP); }
-    void stop() { invoke(CHRONOMETER_STOP); }
-    unsigned long frequency() { return invoke(CHRONOMETER_FREQUENCY); }
-    Chronometer::Time_Stamp ticks() { return invoke(CHRONOMETER_TICKS); }
-    int read() { return invoke(CHRONOMETER_READ); }
-    
-    Microsecond resolution() { return invoke(CLOCK_RESOLUTION); }
-    Second now() { return invoke(CLOCK_NOW); }
-    Clock::Date date() { return invoke(CLOCK_DATE); }
-    void date(const Clock::Date & d) { invoke(CLOCK_DATE1, d); }
-    
+
     template<typename ... Tn>
     int read(Tn ... an) { return receive(an ...); }
     template<typename ... Tn>

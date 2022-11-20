@@ -25,14 +25,14 @@ public:
 
     void * operator new(size_t s, void * stub) {
         db<Framework>(TRC) << "Handled::new(stub=" << stub << ")" << endl;
-        Framework::Element * el= Framework::_cache.search_key(reinterpret_cast<unsigned int>(stub));
+        Framework::Element * el= Framework::_cache.search_key(reinterpret_cast<unsigned long>(stub));
         void * handle;
         if(el) {
             handle = el->object();
             db<Framework>(INF) << "Handled::new(stub=" << stub << ") => " << handle << " (CACHED)" << endl;
         } else {
             handle = new Handle<Component>(reinterpret_cast<typename Handle<Component>::_Stub *>(stub));
-            el = new Framework::Element(handle, reinterpret_cast<unsigned int>(stub));  // the handled cache is insert-only; object are intentionally never deleted, since they have been created by SETUP!
+            el = new Framework::Element(handle, reinterpret_cast<unsigned long>(stub));  // the handled cache is insert-only; object are intentionally never deleted, since they have been created by SETUP!
             Framework::_cache.insert(el);
         }
         return handle;
@@ -57,25 +57,23 @@ private:
     Handle(_Stub * s) { _stub = s; }
 
 public:
+    Handle(const Id & id): _stub(_Stub::share(id)) {}
+    Handle(const Handle & h): _stub(_Stub::share(h._stub)) {}
     template<typename ... Tn>
     Handle(const Tn & ... an) { _stub = new _Stub(an ...); }
 
-    // Dereferencing handles for Task(cs, ds, ...)
+    // Dereferencing handles for constructors that take pointers to system objects
     template<typename ... Tn>
     Handle(Handle<Segment> * cs, Handle<Segment> * ds, const Tn & ... an) { _stub = new _Stub(*cs->_stub, *ds->_stub, an ...); }
+    template<typename ... Tn>
+    Handle(Handle<Task> * task, const Tn & ... an) { _stub = new _Stub(*task->_stub, an ...); }
 
     ~Handle() { if(_stub) delete _stub; }
 
     static Handle<Component> * self() { return new (_Stub::self()) Handled<Component>; }
 
-    // Display
-    static void putc(char c) {_Stub::putc(c); }
-    static void puts(const char * s) {_Stub::puts(s); }
-    static void clear() {_Stub::clear(); }
-    static void geometry(int * lines, int * columns) { _Stub::geometry(lines, columns); }
-    static void position(int * line, int * column) {_Stub::position(line, column); }
-    static void position(int line, int column) {_Stub::position(line, column); }
-    
+    const Id & id() const { return _stub->id(); }
+
     // Process management
     int priority() { return _stub->priority(); }
     void priority(int p) { _stub->priority(p); }
@@ -83,7 +81,6 @@ public:
     int pass() { return _stub->pass(); }
     void suspend() { _stub->suspend(); }
     void resume() { _stub->resume(); }
-    int state() { return _stub->state(); }
     static void yield() { _Stub::yield(); }
     static void exit(int r = 0) { _Stub::exit(r); }
     static volatile bool wait_next() { return _Stub::wait_next(); }
@@ -127,14 +124,9 @@ public:
     void lap() { _stub->lap(); }
     void stop() { _stub->stop(); }
 
-    unsigned long frequency() { return _stub->frequency(); }
-    Chronometer::Time_Stamp ticks() { return _stub->ticks(); }
+    int frequency() { return _stub->frequency(); }
+    int ticks() { return _stub->ticks(); }
     int read() { return _stub->read(); }
-    
-    Microsecond resolution() { return _stub->resolution(); }
-    Second now() { return _stub->now(); }
-    Clock::Date date() { return _stub->date(); }
-    void date(const Clock::Date & d) { _stub->date(d); }
 
     const Microsecond period() const { return _stub->period(); }
     void period(const Microsecond p) { _stub->period(p); }

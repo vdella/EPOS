@@ -6,9 +6,9 @@
 #ifndef __scenario_h
 #define __scenario_h
 
-#include <aspect/shared.h>
-#include <aspect/authenticated.h>
-#include <aspect/energy_aware.h>
+// #include <aspect/shared.h>
+// #include <aspect/authenticated.h>
+// #include <aspect/energy_aware.h>
 
 __BEGIN_SYS
 

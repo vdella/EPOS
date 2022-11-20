@@ -14,7 +14,7 @@ __BEGIN_SYS
 class Message
 {
 private:
-    static const unsigned int MAX_PARAMETERS_SIZE = 20;
+    static const unsigned int MAX_PARAMETERS_SIZE = 256;
 
 public:
     enum {
@@ -30,33 +30,29 @@ public:
         CREATE9,
         DESTROY,
         SELF,
+        SHARE,
+        JOIN,
 
         COMPONENT = 0x10,
 
         THREAD_STATE = COMPONENT,
         THREAD_PRIORITY,
         THREAD_PRIORITY1,
-        THREAD_JOIN,
         THREAD_PASS,
         THREAD_SUSPEND,
         THREAD_RESUME,
         THREAD_YIELD,
         THREAD_EXIT,
         THREAD_WAIT_NEXT,
-        
-        DISPLAY_PUTC = COMPONENT,
-        DISPLAY_PUTS,
-        DISPLAY_CLEAR,
-        DISPLAY_GEOMETRY,
-        DISPLAY_POSITION1,
-        DISPLAY_POSITION2,
-        
+        THREAD_JOIN = JOIN,
+
         TASK_ADDRESS_SPACE = COMPONENT,
         TASK_CODE_SEGMENT,
         TASK_DATA_SEGMENT,
         TASK_CODE,
         TASK_DATA,
         TASK_MAIN,
+        TASK_JOIN = JOIN,
 
         ADDRESS_SPACE_PD = COMPONENT,
         ADDRESS_SPACE_ATTACH1,
@@ -78,31 +74,17 @@ public:
         SYNCHRONIZER_WAIT,
         SYNCHRONIZER_SIGNAL,
         SYNCHRONIZER_BROADCAST,
-        
-        CLOCK_RESOLUTION = COMPONENT,
-        CLOCK_NOW,
-        CLOCK_DATE,
-        CLOCK_DATE1,
 
         ALARM_DELAY = COMPONENT,
         ALARM_GET_PERIOD,
         ALARM_SET_PERIOD,
         ALARM_FREQUENCY,
-        
-        CHRONOMETER_FREQUENCY = COMPONENT,
-        CHRONOMETER_RESET,
-        CHRONOMETER_START,
-        CHRONOMETER_LAP,
-        CHRONOMETER_STOP,
-        CHRONOMETER_READ,
-        CHRONOMETER_TICKS,
-        
 
         PRINT = COMPONENT,
 
-        UNDEFINED = -1
+        UNDEFINED = (unsigned(1) << (sizeof(int) * 8 - 1)) - 1
     };
-    typedef int Method;
+    typedef long Method;
     typedef Method Result;
 
     typedef Simple_List<Message> List;
@@ -130,7 +112,7 @@ public:
         DESERIALIZE(_parms, index, an ...);
     }
     template<typename ... Tn>
-    void out(Tn && ... an) {
+    void out(const Tn & ... an) {
         // Force a compilation error in case out is called with too many arguments
         typename IF<(SIZEOF<Tn ...>::Result <= MAX_PARAMETERS_SIZE), int, void>::Result index = 0;
         SERIALIZE(_parms, index, an ...);
@@ -143,12 +125,12 @@ public:
 
     Element * lext() { return &_link; }
 
-    friend Debug & operator << (Debug & db, const Message & m) {
-          db << "{id=" << m._id << ",m=" << hex << m._method << ",rt=" << m._reply_to
+    friend OStream & operator << (OStream & os, const Message & m) {
+          os << "{id=" << m._id << ",m=" << hex << m._method << ",rt=" << m._reply_to
              << ",p={" << reinterpret_cast<void *>(*static_cast<const int *>(reinterpret_cast<const void *>(&m._parms[0]))) << ","
              << reinterpret_cast<void *>(*static_cast<const int *>(reinterpret_cast<const void *>(&m._parms[4]))) << ","
              << reinterpret_cast<void *>(*static_cast<const int *>(reinterpret_cast<const void *>(&m._parms[8]))) << "}}";
-          return db;
+          return os;
       }
 
 public:

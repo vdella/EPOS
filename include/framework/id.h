@@ -12,13 +12,13 @@ class Pointer_Id
 public:
     enum Null { NULL = 0 };
 
-    enum {
-        ANY_UNIT = (unsigned(1) << (sizeof(int) * 8 - 1)) - 1
+    enum : unsigned long {
+        ANY_UNIT = (1UL << (sizeof(long) * 8 - 1)) - 1
     };
 
     typedef void Host_Id;
-    typedef unsigned int Type_Id;
-    typedef unsigned int Unit_Id;
+    typedef unsigned long Type_Id;
+    typedef unsigned long Unit_Id;
 
 public:
     Pointer_Id() {}
@@ -33,8 +33,8 @@ public:
     const Type_Id & type() const { return _type; }
     const Unit_Id & unit() const { return _unit; }
 
-    friend Debug & operator << (Debug & db, const Pointer_Id & id) {
-        db << "{t=" << id.type() << ",u=" << reinterpret_cast<void *>(id.unit()) << "}" ; return db;
+    friend OStream & operator << (OStream & os, const Pointer_Id & id) {
+        os << "{t=" << id.type() << ",u=" << reinterpret_cast<void *>(id.unit()) << "}" ; return os;
     }
 
 private:

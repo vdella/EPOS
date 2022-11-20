@@ -32,6 +32,7 @@ public:
         static_enter();
         return Scenario<Component>::operator new(bytes);
     }
+
     void operator delete(void * adapter) {
         Scenario<Component>::operator delete(adapter);
         static_leave();
@@ -39,12 +40,34 @@ public:
 
     static const Adapter<Component> * self() { static_enter(); const Adapter<Component> * res = reinterpret_cast<const Adapter<Component> *>(Component::self()); return res; }
 
+    // const Id & id() { return *this; }
+
+    // static Adapter * get(const Id & id) {
+    //     static_enter();
+    //     Adapter * obj = Scenario<Component>::get(id);
+    //     static_leave();
+    //     return obj;
+    // }
+
+    // static Adapter * share(const Id & id) {
+    //     static_enter();
+    //     Adapter * obj = Scenario<Component>::share(id);
+    //     static_leave();
+    //     return obj;
+    // }
+
+    // static Adapter * share(Adapter * adapter) {
+    //     static_enter();
+    //     Adapter * obj = Scenario<Component>::share(adapter);
+    //     static_leave();
+    //     return obj;
+    // }
+
     // Process management
+    // void suspend() { enter(); Component::suspend(); leave(); }
+    // void resume() { enter(); Component::resume(); leave(); }
     int join() { enter(); int res = Component::join(); leave(); return res; }
     void pass() { enter(); Component::pass(); leave(); }
-    void suspend() { enter(); Component::suspend(); leave(); }
-    void resume() { enter(); Component::resume(); leave(); }
-    int state() { enter(); return Component::state(); leave(); }
     static void yield() { static_enter(); Component::yield(); static_leave(); }
     static void exit(int status) { static_enter(); Component::exit(status); static_leave(); }
 
@@ -85,12 +108,6 @@ public:
     int frequency() { enter(); int res = Component::frequency(); leave(); return res; }
     int ticks() { enter(); int res = Component::ticks(); leave(); return res; }
     int read() { enter(); int res = Component::read(); leave(); return res; }
-    
-    Microsecond resolution() { enter(); Microsecond res = Component::resolution(); leave(); return res; }
-    Second now() { enter(); Second res = Component::now(); leave(); return res; }
-    Clock::Date date() { enter(); Clock::Date res = Component::date(); leave(); return res; }
-    void date(Clock::Date d) { enter(); Component::date(d); leave(); }
-    
     const Microsecond period() { enter(); Microsecond res = Component::period(); leave(); return res; }
     void period(const Microsecond p) { enter(); Component::period(p); leave(); }
     static Hertz alarm_frequency() { static_enter(); Hertz res = Component::frequency(); static_leave(); return res; }
