@@ -39,7 +39,7 @@ extern "C"
 }
 
 __BEGIN_SYS
-char * bi;
+char *bi;
 extern OStream kout, kerr;
 
 class Setup
@@ -61,6 +61,7 @@ private:
     static const unsigned long BOOT_STACK = Memory_Map::BOOT_STACK;
     static const unsigned long PAGE_TABLES = Memory_Map::PAGE_TABLES;
     static const unsigned long INIT = Memory_Map::INIT;
+    static const unsigned long SYS = Memory_Map::SYS;
     static const unsigned long SYS_INFO = Memory_Map::SYS_INFO;
     static const unsigned long SYS_CODE = Memory_Map::SYS_CODE;
     static const unsigned long SYS_DATA = Memory_Map::SYS_DATA;
@@ -108,7 +109,7 @@ Setup::Setup()
     // Print basic facts about this EPOS instance
     say_hi();
 
-    //build page tables
+    // build page tables
     init_mmu();
 
     build_lm();
@@ -161,25 +162,29 @@ void Setup::load_parts()
     db<Setup>(TRC) << "load_parts" << endl;
 
     // Relocate System_Info
-    if(sizeof(System_Info) > PAGE_SIZE) {
+    if (sizeof(System_Info) > PAGE_SIZE)
+    {
         db<Setup>(ERR) << "System_Info is bigger than a page (" << sizeof(System_Info) << ")!" << endl;
         _panic();
     }
     memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
 
-    ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
-    ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+    ELF *ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
+    ELF *sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
 
     // Load INIT
-    if(si->lm.has_ini) {
+    if (si->lm.has_ini)
+    {
         db<Setup>(TRC) << "Setup_SifiveE::load_init()" << endl;
-        if(ini_elf->load_segment(0) < 0) {
+        if (ini_elf->load_segment(0) < 0)
+        {
             db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
             _panic();
         }
 
-        for(int i = 1; i < ini_elf->segments(); i++)
-            if(ini_elf->load_segment(i) < 0) {
+        for (int i = 1; i < ini_elf->segments(); i++)
+            if (ini_elf->load_segment(i) < 0)
+            {
                 db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
                 _panic();
             }
@@ -187,14 +192,17 @@ void Setup::load_parts()
     db<Setup>(TRC) << "init has " << hex << sys_elf->segment_address(0) - ini_elf->segment_address(0) - ini_elf->segment_size(0) << " unused bytes of memory" << endl;
 
     // Load SYSTEM
-    if(si->lm.has_sys) {
+    if (si->lm.has_sys)
+    {
         db<Setup>(TRC) << "Setup_SifiveE::load_system()" << endl;
-        if(sys_elf->load_segment(0) < 0) {
+        if (sys_elf->load_segment(0) < 0)
+        {
             db<Setup>(ERR) << "system code segment was corrupted during SETUP!" << endl;
             _panic();
         }
-        for(int i = 1; i < sys_elf->segments(); i++)
-            if(sys_elf->load_segment(i) < 0) {
+        for (int i = 1; i < sys_elf->segments(); i++)
+            if (sys_elf->load_segment(i) < 0)
+            {
                 db<Setup>(ERR) << "system data segment was corrupted during SETUP!" << endl;
                 _panic();
             }
@@ -202,7 +210,6 @@ void Setup::load_parts()
     db<Setup>(TRC) << "sys code has " << hex << sys_elf->segment_address(1) - sys_elf->segment_address(0) - sys_elf->segment_size(0) << " unused bytes of memory" << endl;
     db<Setup>(TRC) << "sys data has " << hex << 0x00100000 - sys_elf->segment_size(1) << " unused bytes of memory" << endl;
 }
-
 
 void Setup::build_lm()
 {
@@ -215,7 +222,7 @@ void Setup::build_lm()
     si->lm.has_app = (si->bm.application_offset[0] != -1u);
     si->lm.has_ext = (si->bm.extras_offset != -1u);
 
-    bi = reinterpret_cast<char *>(Traits<Machine>::RAM_BASE); // bi is loaded at MEM_BASE
+    bi = reinterpret_cast<char *>(Traits<Machine>::IMAGE); // bi is loaded at IMAGE
     // Setup won't be loaded since it is already present on binary form at the boot image
     si->lm.stp_entry = 0;
     si->lm.stp_segments = 0;
@@ -232,9 +239,11 @@ void Setup::build_lm()
     si->lm.ini_data = ~0U;
     si->lm.ini_data_size = 0;
     db<Setup>(WRN) << "Before Init Elf" << endl;
-    if(si->lm.has_ini) {
-        ELF * ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
-        if(!ini_elf->valid()) {
+    if (si->lm.has_ini)
+    {
+        ELF *ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
+        if (!ini_elf->valid())
+        {
             db<Setup>(ERR) << "INIT ELF image is corrupted!" << endl;
             _panic();
         }
@@ -243,112 +252,128 @@ void Setup::build_lm()
         si->lm.ini_segments = ini_elf->segments();
         si->lm.ini_code = ini_elf->segment_address(0);
         si->lm.ini_code_size = ini_elf->segment_size(0);
-        if(ini_elf->segments() > 1) {
-            for(int i = 1; i < ini_elf->segments(); i++) {
-                if(ini_elf->segment_type(i) != PT_LOAD)
-                    continue;
-                if(ini_elf->segment_address(i) < si->lm.ini_data)
-                    si->lm.ini_data = ini_elf->segment_address(i);
-                si->lm.ini_data_size += ini_elf->segment_size(i);
+
+        for (int i = 0; i < ini_elf->segments(); i++) {
+            if ((ini_elf->segment_size(i) == 0) || (ini_elf->segment_type(i) != PT_LOAD))
+                continue;
+            if ((ini_elf->segment_address(i) < INIT) || (ini_elf->segment_address(i) > SYS)) {
+                db<Setup>(WRN) << "Ignoring OS ELF segment " << i << " at " << hex << ini_elf->segment_address(i) << "!" << endl;
+                continue;
             }
-        }
-        if(si->lm.ini_code != INIT) {
-            db<Setup>(ERR) << "Init code segment address (" << reinterpret_cast<void *>(si->lm.ini_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(INIT) << ")!" << endl;
-            _panic();
-        }
-        if(si->lm.ini_code + si->lm.ini_code_size > SYS_CODE) {
-            db<Setup>(ERR) << "Init code segment is too large!" << endl;
-            _panic();
-        }
-    }
-    db<Setup>(WRN) << "Check System integrity" << endl;
-    // Check SYSTEM integrity and get the size of its segments
-    si->lm.sys_entry = 0;
-    si->lm.sys_segments = 0;
-    si->lm.sys_code = ~0U;
-    si->lm.sys_code_size = 0;
-    si->lm.sys_data = ~0U;
-    si->lm.sys_data_size = 0;
-    si->lm.sys_stack = SYS_STACK;
-    si->lm.sys_stack_size = Traits<System>::STACK_SIZE * si->bm.n_cpus;
-    if(si->lm.has_sys) {
-        ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
-        if(!sys_elf->valid()) {
-            db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
-            _panic();
-        }
 
-        si->lm.sys_entry = sys_elf->entry();
-        si->lm.sys_segments = sys_elf->segments();
-        si->lm.sys_code = sys_elf->segment_address(0);
-        si->lm.sys_code_size = sys_elf->segment_size(0);
-        if(sys_elf->segments() > 1) {
-            for(int i = 1; i < sys_elf->segments(); i++) {
-                if(sys_elf->segment_type(i) != PT_LOAD)
-                    continue;
-                if(sys_elf->segment_address(i) < si->lm.sys_data)
-                    si->lm.sys_data = sys_elf->segment_address(i);
-                si->lm.sys_data_size += sys_elf->segment_size(i);
-            }
-        }
+            if (si->lm.ini_code_size == 0) {
+                si->lm.ini_code_size = ini_elf->segment_size(i);
+                si->lm.ini_code = ini_elf->segment_address(i);
+            } else if (ini_elf->segment_address(i) < si->lm.ini_code) {
+                si->lm.ini_code_size = si->lm.ini_code - ini_elf->segment_address(i) + ini_elf->segment_size(i);
+                si->lm.ini_code = ini_elf->segment_address(i);
+            } else if (ini_elf->segment_address(i) > (si->lm.ini_code + si->lm.ini_code_size)) {
+                si->lm.ini_code_size = ini_elf->segment_address(i) - si->lm.ini_code;
+            } else
+                si->lm.ini_code_size += ini_elf->segment_size(i);
 
-        if(si->lm.sys_code != SYS_CODE) {
-            db<Setup>(ERR) << "OS code segment address (" << reinterpret_cast<void *>(si->lm.sys_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_CODE) << ")!" << endl;
-            _panic();
+            si->lm.ini_segments++;
         }
-        if(si->lm.sys_code + si->lm.sys_code_size > si->lm.sys_data) {
-            db<Setup>(ERR) << "OS code segment is too large!" << endl;
-            _panic();
-        }
-        if(si->lm.sys_data_size > 0x100000) {
-            db<Setup>(ERR) << "OS data segment is larger than 1Mb!" << endl;
-            _panic();
-        }
-        if(si->lm.sys_data != SYS_DATA) {
-            db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
-            _panic();
-        }
-    }
-
-    // Check APPLICATION integrity and get the size of its segments
-    for(unsigned i=0; i < si->bm.n_apps; i++){
-        si->lm.app[i].app_entry = 0;
-        si->lm.app[i].app_segments = 0;
-        si->lm.app[i].app_code = ~0U;
-        si->lm.app[i].app_code_size = 0;
-        si->lm.app[i].app_data = ~0U;
-        si->lm.app[i].app_data_size = 0;
-        if(si->lm.has_app) {
-            ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[i]]);
-            if(!app_elf->valid()) {
-                db<Setup>(ERR) << "Application ELF image is corrupted!" << endl;
+        db<Setup>(WRN) << "Check System integrity" << endl;
+        // Check SYSTEM integrity and get the size of its segments
+        si->lm.sys_entry = 0;
+        si->lm.sys_segments = 0;
+        si->lm.sys_code = ~0U;
+        si->lm.sys_code_size = 0;
+        si->lm.sys_data = ~0U;
+        si->lm.sys_data_size = 0;
+        si->lm.sys_stack = SYS_STACK;
+        si->lm.sys_stack_size = Traits<System>::STACK_SIZE * si->bm.n_cpus;
+        if (si->lm.has_sys)
+        {
+            ELF *sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+            if (!sys_elf->valid())
+            {
+                db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
                 _panic();
             }
-            si->lm.app[i].app_entry = app_elf->entry();
-            si->lm.app[i].app_segments = app_elf->segments();
-            si->lm.app[i].app_code = app_elf->segment_address(0);
-            si->lm.app[i].app_code_size = app_elf->segment_size(0);
-            if(app_elf->segments() > 1) {
-                for(int j = 1; j < app_elf->segments(); j++) {
-                    if(app_elf->segment_type(j) != PT_LOAD) {
+
+            si->lm.sys_entry = sys_elf->entry();
+            si->lm.sys_segments = sys_elf->segments();
+            si->lm.sys_code = sys_elf->segment_address(0);
+            si->lm.sys_code_size = sys_elf->segment_size(0);
+            
+            if (sys_elf->segments() > 1) {
+                for (int i = 1; i < sys_elf->segments(); i++) {
+                    if (sys_elf->segment_type(i) != PT_LOAD)
                         continue;
-                    }
-                    if(app_elf->segment_address(j) < si->lm.app[i].app_data)
-                        si->lm.app[i].app_data = app_elf->segment_address(j);
-                    si->lm.app[i].app_data_size += app_elf->segment_size(j);
+                    if (sys_elf->segment_address(i) < si->lm.sys_data)
+                        si->lm.sys_data = sys_elf->segment_address(i);
+                    si->lm.sys_data_size += sys_elf->segment_size(i);
                 }
             }
-            if(si->lm.app[i].app_code != APP_CODE) {
-                db<Setup>(ERR) << "App code segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_CODE) << ")!" << endl;
+
+            if (si->lm.sys_code != SYS_CODE) {
+                db<Setup>(ERR) << "OS code segment address (" << reinterpret_cast<void *>(si->lm.sys_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_CODE) << ")!" << endl;
                 _panic();
             }
-            if(si->lm.app[i].app_code + si->lm.app[i].app_code_size > si->lm.app[i].app_data) {
-                db<Setup>(ERR) << "App code segment is too large!" << endl;
+            
+            if (si->lm.sys_code + si->lm.sys_code_size > si->lm.sys_data) {
+                db<Setup>(ERR) << "OS code segment is too large!" << endl;
                 _panic();
             }
-            if(si->lm.app[i].app_data != APP_DATA) {
-                db<Setup>(ERR) << "App data segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_DATA) << ")!" << endl;
+
+            if (si->lm.sys_data_size > 0x100000) {
+                db<Setup>(ERR) << "OS data segment is larger than 1Mb!" << endl;
                 _panic();
+            }
+
+            if (si->lm.sys_data != SYS_DATA) {
+                db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
+                _panic();
+            }
+        }
+
+        // Check APPLICATION integrity and get the size of its segments
+        for (unsigned i = 0; i < si->bm.n_apps; i++) {
+            si->lm.app[i].app_entry = 0;
+            si->lm.app[i].app_segments = 0;
+            si->lm.app[i].app_code = ~0U;
+            si->lm.app[i].app_code_size = 0;
+            si->lm.app[i].app_data = ~0U;
+            si->lm.app[i].app_data_size = 0;
+            if (si->lm.has_app) {
+                ELF *app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[i]]);
+                
+                if (!app_elf->valid()) {
+                    db<Setup>(ERR) << "Application ELF image is corrupted!" << endl;
+                    _panic();
+                }
+                
+                si->lm.app[i].app_entry = app_elf->entry();
+                si->lm.app[i].app_segments = app_elf->segments();
+                si->lm.app[i].app_code = app_elf->segment_address(0);
+                si->lm.app[i].app_code_size = app_elf->segment_size(0);
+                
+                if (app_elf->segments() > 1) {
+                    for (int j = 1; j < app_elf->segments(); j++) {
+                        if (app_elf->segment_type(j) != PT_LOAD)
+                            continue;
+                        if (app_elf->segment_address(j) < si->lm.app[i].app_data)
+                            si->lm.app[i].app_data = app_elf->segment_address(j);
+                        si->lm.app[i].app_data_size += app_elf->segment_size(j);
+                    }
+                }
+
+                if (si->lm.app[i].app_code != APP_CODE) {
+                    db<Setup>(ERR) << "App code segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_CODE) << ")!" << endl;
+                    _panic();
+                }
+
+                if (si->lm.app[i].app_code + si->lm.app[i].app_code_size > si->lm.app[i].app_data) {
+                    db<Setup>(ERR) << "App code segment is too large!" << endl;
+                    _panic();
+                }
+
+                if (si->lm.app[i].app_data != APP_DATA) {
+                    db<Setup>(ERR) << "App data segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_DATA) << ")!" << endl;
+                    _panic();
+                }
             }
         }
     }
@@ -364,7 +389,6 @@ void Setup::init_mmu()
     unsigned total_pts = MMU::page_tables(pages);
     kout << "Total Page Tables: " << total_pts << endl;
 
-
     unsigned int PD_ENTRIES_LVL_2 = total_pts / PT_ENTRIES;
     unsigned int PD_ENTRIES_LVL_1 = PT_ENTRIES;
     unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
@@ -372,7 +396,7 @@ void Setup::init_mmu()
     kout << "LVL 2: " << PD_ENTRIES_LVL_2 << endl;
 
     Phy_Addr PD2_ADDR = PAGE_TABLES;
-    Page_Directory * master = new ((void *)PD2_ADDR) Page_Directory();
+    Page_Directory *master = new ((void *)PD2_ADDR) Page_Directory();
     kout << "Master Base Address: " << PD2_ADDR << endl;
     PD2_ADDR += PAGE_SIZE;
 
@@ -414,7 +438,7 @@ void Setup::init_mmu()
     MMU::flush_tlb();
 
     // Flush TLB to ensure we've got the right memory organization
-}
+};
 
 void Setup::call_next()
 {
@@ -464,16 +488,17 @@ void _entry() // machine mode
     CPU::medeleg(0xffff);
 
     // Relocate _mmode_forward - 1024 bytes are enough
-    char * src = reinterpret_cast<char *>(&_mmode_forward);
-    char * dst = reinterpret_cast<char *>(Memory_Map::MMODE_F);
-    for(int i=0; i < 1024; i++){
+    char *src = reinterpret_cast<char *>(&_mmode_forward);
+    char *dst = reinterpret_cast<char *>(Memory_Map::MMODE_F);
+    for (int i = 0; i < 1024; i++)
+    {
         *dst = *src;
         src++;
         dst++;
     }
 
-    CPU::mies(CPU::MSI | CPU::MTI | CPU::MEI);              // enable interrupts generation by CLINT
-    CPU::mint_disable();                                    // (mstatus) disable interrupts (they will be reenabled at Init_End)
+    CPU::mies(CPU::MSI | CPU::MTI | CPU::MEI);                  // enable interrupts generation by CLINT
+    CPU::mint_disable();                                        // (mstatus) disable interrupts (they will be reenabled at Init_End)
     CLINT::mtvec(CLINT::DIRECT, CPU::Reg(Memory_Map::MMODE_F)); // setup a preliminary machine mode interrupt handler pointing it to _mmode_forward
 
     db<Setup>(WRN) << "Setup" << endl;
@@ -483,7 +508,7 @@ void _entry() // machine mode
     CPU::mstatus(CPU::MPP_S | CPU::MPIE);
     CPU::mepc(CPU::Reg(&_setup)); // entry = _setup
     CPU::mret();                  // enter supervisor mode at setup (mepc) with interrupts enabled (mstatus.mpie = true)
-}
+};
 
 void _setup() // supervisor mode
 {
