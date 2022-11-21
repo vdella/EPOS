@@ -80,16 +80,16 @@ LMACH		= $(LMACHNAME)_$(MMOD)
 LSYS		= $(LSYSNAME)_$(MMOD)
 LINIT		= $(LINITNAME)_$(MMOD)
 LUTIL		= $(LUTILNAME)_$(MMOD)
-#ifeq ($(SMOD), library)
+ifeq ($(SMOD), library)
 BOOT_ROM	= 
-#else
-#BOOT_ROM	= -device loader,file=$(APPLICATION).img,addr=$(IMAGE_ADDR),force-raw=on 
-#endif
+else
+BOOT_ROM	= -device loader,file=$(APPLICATION).img,addr=$(IMAGE_ADDR),force-raw=on 
+endif
 
 # Boot Memory Map
 MEM_SIZE	= $(shell $(BIN)/eposcfg MEM_SIZE_KB 2> /dev/null)
 BOOT_ADDR	= $(shell $(BIN)/eposcfg BOOT 2> /dev/null)
-#IMAGE_ADDR	= $(shell $(BIN)/eposcfg IMAGE 2> /dev/null)
+IMAGE_ADDR	= $(shell $(BIN)/eposcfg IMAGE 2> /dev/null)
 SETUP_ADDR	= $(shell $(BIN)/eposcfg SETUP 2> /dev/null)
 INIT_ADDR	= $(shell $(BIN)/eposcfg INIT 2> /dev/null)
 SYS_CODE_ADDR	= $(shell $(BIN)/eposcfg SYS_CODE 2> /dev/null)
