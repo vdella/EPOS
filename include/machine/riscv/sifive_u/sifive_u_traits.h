@@ -27,17 +27,18 @@ public:
 
     // Physical Memory 27FFFFFFF
     static const unsigned long RAM_BASE = 0x0000000080000000; // 2 GB
-    static const unsigned long RAM_TOP =  0x00000000ffffffff;  // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
+    static const unsigned long RAM_TOP =  0x000000027fffffff; // 2 GB + 128 MB (max 1536 MB of RAM => RAM + MIO < 2 G)
     static const unsigned long MIO_BASE = 0x0000000000000000;
     static const unsigned long MIO_TOP =  0x000000001fffffff;
 
     // Physical Memory at Boot
     static const unsigned long BOOT = NOT_USED;
-    static const unsigned long SETUP = library ? NOT_USED : RAM_BASE; // RAM_BASE (will be part of the free memory at INIT, using a logical address identical to physical eliminate SETUP relocation)
+    static const unsigned long SETUP = library ? NOT_USED : RAM_BASE;  // RAM_BASE (will be part of the free memory at INIT, using a logical address identical to physical eliminate SETUP relocation)
     static const unsigned long IMAGE = library ? NOT_USED : 0x0000000080300000;            // RAM_BASE + 1 MB (will be part of the free memory at INIT, defines the maximum image size; if larger than 3 MB then adjust at SETUP)
 
     // Logical Memory
-    static const unsigned long APP_LOW = library ? RAM_BASE : RAM_TOP+1; // 2 GB + 4 MB         0x00000000ff7ffff
+    // static const unsigned long APP_LOW = library ? RAM_BASE : RAM_TOP + 1; // 2 GB + 4 MB         0x00000000ff7ffff
+    static const unsigned long APP_LOW  = 0xFFFFFFFF80000000;
     static const unsigned long APP_CODE = APP_LOW;
     static const unsigned long APP_DATA = APP_CODE + 4 * 1024 * 1024;
     static const unsigned long APP_HEAP = APP_DATA + 4 * 1024 * 1024;
@@ -45,7 +46,7 @@ public:
 
 
     static const unsigned long INIT = library ? NOT_USED : 0x0000000080200000; // RAM_BASE + 512 KB (will be part of the free memory at INIT)
-    static const unsigned long PHY_MEM = NOT_USED;                   // 512 MB (max 1536 MB of RAM)
+    static const unsigned long PHY_MEM  = NOT_USED;                   // 512 MB (max 1536 MB of RAM)
     static const unsigned long IO       = NOT_USED;                        // 0 (max 512 MB of IO = MIO_TOP - MIO_BASE)
     static const unsigned long SYS      = 0x0000000080400000;
     static const unsigned long SYS_DATA = 0x0000000080600000;
