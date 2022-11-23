@@ -65,7 +65,7 @@ public:
         MMODE_F  = SYS_INFO - 4096,
         SYS_STACK = NOT_USED,
         SYS_HEAP = NOT_USED,
-
+        SYS_HIGH = Traits<Machine>::SYS_HIGH
     };
 };
 

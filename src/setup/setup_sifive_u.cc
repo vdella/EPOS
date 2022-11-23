@@ -66,6 +66,7 @@ private:
     static const unsigned long SYS_CODE = Memory_Map::SYS_CODE;
     static const unsigned long SYS_DATA = Memory_Map::SYS_DATA;
     static const unsigned long SYS_STACK = Memory_Map::SYS_STACK;
+    static const unsigned long SYS_HIGH = Memory_Map::SYS_HIGH;
     static const unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
     static const unsigned int PD_ENTRIES = PT_ENTRIES;
     static const unsigned int PAGE_SIZE = 4096;
@@ -275,58 +276,67 @@ void Setup::build_lm()
             si->lm.ini_segments++;
         }
         db<Setup>(WRN) << "Check System integrity" << endl;
+        
         // Check SYSTEM integrity and get the size of its segments
         si->lm.sys_entry = 0;
         si->lm.sys_segments = 0;
-        si->lm.sys_code = ~0U;
+        si->lm.sys_code = 0;
         si->lm.sys_code_size = 0;
         si->lm.sys_data = ~0U;
         si->lm.sys_data_size = 0;
         si->lm.sys_stack = SYS_STACK;
-        si->lm.sys_stack_size = Traits<System>::STACK_SIZE * si->bm.n_cpus;
-        if (si->lm.has_sys)
-        {
-            ELF *sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
-            if (!sys_elf->valid())
-            {
-                db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
-                _panic();
-            }
-
-            si->lm.sys_entry = sys_elf->entry();
-            si->lm.sys_segments = sys_elf->segments();
-            si->lm.sys_code = sys_elf->segment_address(0);
-            si->lm.sys_code_size = sys_elf->segment_size(0);
+        si->lm.sys_stack_size = Traits<System>::STACK_SIZE;
+        
+        if(si->lm.has_sys) {
+            ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
             
-            if (sys_elf->segments() > 1) {
-                for (int i = 1; i < sys_elf->segments(); i++) {
-                    if (sys_elf->segment_type(i) != PT_LOAD)
-                        continue;
-                    if (sys_elf->segment_address(i) < si->lm.sys_data)
+            if(!sys_elf->valid())
+                db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
+            si->lm.sys_entry = sys_elf->entry();
+
+            for(int i = 0; i < sys_elf->segments(); i++) {
+                if((sys_elf->segment_size(i) == 0) || (sys_elf->segment_type(i) != PT_LOAD))
+                    continue;
+        
+                if((sys_elf->segment_address(i) < SYS) || (sys_elf->segment_address(i) > SYS_HIGH)) {
+                    db<Setup>(WRN) << "Ignoring OS ELF segment " << i << " at " << hex << sys_elf->segment_address(i) << "!"<< endl;
+                    continue;
+                }
+        
+                if(sys_elf->segment_address(i) < SYS_DATA) {  // CODE
+                    if(si->lm.sys_code_size == 0) {
+                        si->lm.sys_code_size = sys_elf->segment_size(i);
+                        si->lm.sys_code = sys_elf->segment_address(i);
+                    } else if(sys_elf->segment_address(i) < si->lm.sys_code) {
+                        si->lm.sys_code_size = si->lm.sys_code - sys_elf->segment_address(i) + sys_elf->segment_size(i);
+                        si->lm.sys_code = sys_elf->segment_address(i);
+                    } else if(sys_elf->segment_address(i) > (si->lm.sys_code + si->lm.sys_code_size)) {
+                        si->lm.sys_code_size = sys_elf->segment_address(i) - si->lm.sys_code;
+                    } else
+                        si->lm.sys_code_size += sys_elf->segment_size(i);
+                } else {  // DATA
+                    if(sys_elf->segment_address(i) < si->lm.sys_data)
                         si->lm.sys_data = sys_elf->segment_address(i);
                     si->lm.sys_data_size += sys_elf->segment_size(i);
                 }
+                si->lm.sys_segments++;
             }
-
-            if (si->lm.sys_code != SYS_CODE) {
+            if(si->lm.sys_code != MMU::align_directory(si->lm.sys_code))
+                db<Setup>(ERR) << "Unaligned OS code segment:" << hex << si->lm.sys_code << endl;
+            if(si->lm.sys_data == ~0U) {
+                db<Setup>(WRN) << "OS SYS ELF image has no data segment!" << endl;
+                si->lm.sys_data = MMU::align_page(APP_DATA);
+            }
+            if(si->lm.sys_code != SYS_CODE)
                 db<Setup>(ERR) << "OS code segment address (" << reinterpret_cast<void *>(si->lm.sys_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_CODE) << ")!" << endl;
-                _panic();
-            }
-            
-            if (si->lm.sys_code + si->lm.sys_code_size > si->lm.sys_data) {
+            if(si->lm.sys_code + si->lm.sys_code_size > si->lm.sys_data)
                 db<Setup>(ERR) << "OS code segment is too large!" << endl;
-                _panic();
-            }
-
-            if (si->lm.sys_data_size > 0x100000) {
-                db<Setup>(ERR) << "OS data segment is larger than 1Mb!" << endl;
-                _panic();
-            }
-
-            if (si->lm.sys_data != SYS_DATA) {
+            if(si->lm.sys_data != SYS_DATA)
                 db<Setup>(ERR) << "OS data segment address (" << reinterpret_cast<void *>(si->lm.sys_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_DATA) << ")!" << endl;
-                _panic();
-            }
+            if(si->lm.sys_data + si->lm.sys_data_size > si->lm.sys_stack)
+                db<Setup>(ERR) << "OS data segment is too large!" << endl;
+            if(MMU::page_tables(MMU::pages(si->lm.sys_stack_size)) > 1)
+                db<Setup>(ERR) << "OS stack segment is too large!" << endl;
         }
 
         // Check APPLICATION integrity and get the size of its segments

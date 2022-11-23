@@ -49,6 +49,7 @@ public:
     static const unsigned long IO       = NOT_USED;                        // 0 (max 512 MB of IO = MIO_TOP - MIO_BASE)
     static const unsigned long SYS      = 0x0000000080400000;
     static const unsigned long SYS_DATA = 0x0000000080600000;
+    static const unsigned long SYS_HIGH = 0x0000000080800000;
 
     // Default Sizes and Quantities
     static const unsigned int MAX_THREADS = 16;
