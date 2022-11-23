@@ -268,7 +268,7 @@ void Setup::build_lm()
         for(int i = 0; i < ini_elf->segments(); i++) {
             if((ini_elf->segment_size(i) == 0) || (ini_elf->segment_type(i) != PT_LOAD))
                 continue;
-            if((ini_elf->segment_address(i) < INIT) || (ini_elf->segment_address(i) > SYS)) {
+            if((ini_elf->segment_address(i) < INIT) || (ini_elf->segment_address(i) > SYS) || (! ini_elf->segment_address(i))) {
                 db<Setup>(WRN) << "Ignoring OS ELF segment " << i << " at " << hex << ini_elf->segment_address(i) << "!"<< endl;
                 continue;
             }
@@ -309,10 +309,12 @@ void Setup::build_lm()
         for(int i = 0; i < sys_elf->segments(); i++) {
             if((sys_elf->segment_size(i) == 0) || (sys_elf->segment_type(i) != PT_LOAD))
                 continue;
+            
             if((sys_elf->segment_address(i) < SYS) || (sys_elf->segment_address(i) > SYS_HIGH)) {
                 db<Setup>(WRN) << "Ignoring OS ELF segment " << i << " at " << hex << sys_elf->segment_address(i) << "!"<< endl;
                 continue;
             }
+            
             if(sys_elf->segment_address(i) < SYS_DATA) { // CODE
                 if(si->lm.sys_code_size == 0) {
                     si->lm.sys_code_size = sys_elf->segment_size(i);
@@ -337,7 +339,7 @@ void Setup::build_lm()
             db<Setup>(WRN) << "OS ELF image has no data segment!" << endl;
             db<Setup>(WRN) << "Using default sys data segment at " << hex << SYS_DATA << endl;
             db<Setup>(WRN) << "Using default app data segment at " << hex << APP_DATA << endl;
-            si->lm.sys_data = MMU::align_page(APP_DATA);
+            si->lm.sys_data = MMU::align_page(SYS_DATA);
         }
         if(si->lm.sys_code != SYS_CODE)
             db<Setup>(ERR) << "OS code segment address (" << reinterpret_cast<void *>(si->lm.sys_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(SYS_CODE) << ")!" << endl;
@@ -352,63 +354,45 @@ void Setup::build_lm()
     }
 
     // Check APPLICATION integrity and get the size of its segments
-    si->lm.app_entry = 0;
-    si->lm.app_segments = 0;
-    si->lm.app_code = ~0U;
-    si->lm.app_code_size = 0;
-    si->lm.app_data = ~0U;
-    si->lm.app_data_size = 0;
-    si->lm.app_extra = ~0U;
-    si->lm.app_extra_size = 0;
-    if(si->lm.has_app) {
-        ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[0]]);
-        if(!app_elf->valid())
-            db<Setup>(ERR) << "APP ELF image is corrupted!" << endl;
-        si->lm.app_entry = app_elf->entry();
-        for(int i = 0; i < app_elf->segments(); i++) {
-            if((app_elf->segment_size(i) == 0) || (app_elf->segment_type(i) != PT_LOAD))
-                continue;
-            if((app_elf->segment_address(i) < APP_LOW) || (app_elf->segment_address(i) > APP_HIGH)) {
-                db<Setup>(WRN) << "Ignoring APP ELF segment " << i << " at " << hex << app_elf->segment_address(i) << "!"<< endl;
-                continue;
+    for(unsigned i=0; i < si->bm.n_apps; i++){
+        si->lm.app[i].app_entry = 0;
+        si->lm.app[i].app_segments = 0;
+        si->lm.app[i].app_code = ~0U;
+        si->lm.app[i].app_code_size = 0;
+        si->lm.app[i].app_data = ~0U;
+        si->lm.app[i].app_data_size = 0;
+        if(si->lm.has_app) {
+            ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[i]]);
+            if(!app_elf->valid()) {
+                db<Setup>(ERR) << "Application ELF image is corrupted!" << endl;
+                _panic();
             }
-            if(app_elf->segment_address(i) < APP_DATA) { // CODE
-                if(si->lm.app_code_size == 0) {
-                    si->lm.app_code_size = app_elf->segment_size(i);
-                    si->lm.app_code = app_elf->segment_address(i);
-                } else if(app_elf->segment_address(i) < si->lm.app_code) {
-                    si->lm.app_code_size = si->lm.app_code - app_elf->segment_address(i) + app_elf->segment_size(i);
-                    si->lm.app_code = app_elf->segment_address(i);
-                } else if(app_elf->segment_address(i) > (si->lm.app_code + si->lm.app_code_size)) {
-                    si->lm.app_code_size = app_elf->segment_address(i) - si->lm.app_code;
-                } else
-                    si->lm.app_code_size += app_elf->segment_size(i);
-            } else { // DATA
-                if(app_elf->segment_address(i) < si->lm.app_data)
-                    si->lm.app_data = app_elf->segment_address(i);
-                si->lm.app_data_size += app_elf->segment_size(i);
+            si->lm.app[i].app_entry = app_elf->entry();
+            si->lm.app[i].app_segments = app_elf->segments();
+            si->lm.app[i].app_code = app_elf->segment_address(0);
+            si->lm.app[i].app_code_size = app_elf->segment_size(0);
+            if(app_elf->segments() > 1) {
+                for(int j = 1; j < app_elf->segments(); j++) {
+                    if(app_elf->segment_type(j) != PT_LOAD) {
+                        continue;
+                    }
+                    if(app_elf->segment_address(j) < si->lm.app[i].app_data)
+                        si->lm.app[i].app_data = app_elf->segment_address(j);
+                    si->lm.app[i].app_data_size += app_elf->segment_size(j);
+                }
             }
-            si->lm.app_segments++;
-        }
-        if(si->lm.app_code != MMU::align_directory(si->lm.app_code))
-            db<Setup>(ERR) << "Unaligned APP code segment:" << hex << si->lm.app_code << endl;
-        if(si->lm.app_data == ~0U) {
-            db<Setup>(WRN) << "APP ELF image has no data segment!" << endl;
-            si->lm.app_data = MMU::align_page(APP_DATA);
-        }
-        if(Traits<System>::multiheap) { // Application heap in data segment
-            si->lm.app_data_size = MMU::align_page(si->lm.app_data_size);
-            si->lm.app_stack = si->lm.app_data + si->lm.app_data_size;
-            si->lm.app_data_size += MMU::align_page(Traits<Application>::STACK_SIZE);
-            si->lm.app_heap = si->lm.app_data + si->lm.app_data_size;
-            si->lm.app_data_size += MMU::align_page(Traits<Application>::HEAP_SIZE);
-        }
-        if(si->lm.has_ext) { // Check for EXTRA data in the boot image
-            si->lm.app_extra = si->lm.app_data + si->lm.app_data_size;
-            si->lm.app_extra_size = si->bm.img_size - si->bm.extras_offset;
-            if(Traits<System>::multiheap)
-                si->lm.app_extra_size = MMU::align_page(si->lm.app_extra_size);
-            si->lm.app_data_size += si->lm.app_extra_size;
+            if(si->lm.app[i].app_code != APP_CODE) {
+                db<Setup>(ERR) << "App code segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_code) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_CODE) << ")!" << endl;
+                _panic();
+            }
+            if(si->lm.app[i].app_code + si->lm.app[i].app_code_size > si->lm.app[i].app_data) {
+                db<Setup>(ERR) << "App code segment is too large!" << endl;
+                _panic();
+            }
+            if(si->lm.app[i].app_data != APP_DATA) {
+                db<Setup>(ERR) << "App data segment address (" << reinterpret_cast<void *>(si->lm.app[i].app_data) << ") does not match the machine's memory map (" << reinterpret_cast<void *>(APP_DATA) << ")!" << endl;
+                _panic();
+            }
         }
     }
 }
