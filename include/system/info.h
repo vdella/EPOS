@@ -13,15 +13,15 @@ struct System_Info_Common
 protected:
     typedef unsigned long LAddr;
     typedef unsigned long PAddr;
-    typedef unsigned long Size;
+    typedef unsigned int Size;
 
 public:
     struct App_Load_Map
     {
       private:
-          typedef unsigned int LAddr;
-          typedef unsigned int PAddr;
-          typedef unsigned int Size;
+          typedef unsigned long LAddr;
+          typedef unsigned long PAddr;
+          typedef unsigned long Size;
 
       public:
           LAddr app_entry;
@@ -121,14 +121,14 @@ public:
         LAddr sys_stack;
         Size  sys_stack_size;
         App_Load_Map app[8];
-        LAddr app_entry;
-        Size  app_segments;
-        LAddr app_code;
-        Size  app_code_size;
-        LAddr app_data;
-        LAddr app_stack;
-        LAddr app_heap;
-        Size  app_data_size;
+        // LAddr app_entry;
+        // Size  app_segments;
+        // LAddr app_code;
+        // Size  app_code_size;
+        // LAddr app_data;
+        // LAddr app_stack;
+        // LAddr app_heap;
+        // Size  app_data_size;
         LAddr app_extra;
         Size  app_extra_size;
     };

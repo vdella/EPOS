@@ -7,15 +7,15 @@
 // ARCHITECTURE, MACHINE, AND APPLICATION SELECTION
 // This section is generated automatically from makedefs by $EPOS/etc/makefile
 //============================================================================
-#define SMOD xxx
-#define ARCH xxx
-#define MACH xxx
-#define MMOD xxx
-#define APPL xxx
-#define __mode_xxx__
-#define __arch_xxx__
-#define __mach_xxx__
-#define __mmod_xxx__
+#define SMOD kernel
+#define ARCH rv64
+#define MACH riscv
+#define MMOD sifive_u
+#define APPL hello
+#define __kernel__
+#define __rv64__
+#define __riscv__
+#define __sifive_u__
 
 //============================================================================
 // NAMESPACES AND DEFINITIONS
@@ -66,7 +66,8 @@ namespace EPOS {
 // ASSERT (for pre and post conditions)
 //============================================================================
 #define assert(expr)    ((expr) ? static_cast<void>(0) : Assert::fail (#expr, __FILE__, __LINE__, __PRETTY_FUNCTION__))
-//#define assert(expr)    (static_cast<void>(0))
+
+// #define assert(expr)    (static_cast<void>(0))
 
 //============================================================================
 // CONFIGURATION

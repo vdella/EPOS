@@ -189,7 +189,7 @@ int main(int argc, char **argv)
     fprintf(out, "\n  Creating EPOS bootable image in \"%s\":\n", argv[optind + 1]);
 
     // Add BOOT
-    if(CONFIG.boot_length_max > 0) {
+    if(CONFIG.need_boot) {
         sprintf(file, "%s/img/boot_%s", argv[optind], CONFIG.mmod);
         fprintf(out, "    Adding bootstrap \"%s\":", file);
         image_size += put_file(fd_img, file);
@@ -204,30 +204,32 @@ int main(int argc, char **argv)
     }
     unsigned int boot_size = image_size;
 
-    // Determine if System_Info is needed and how it must be handled
+    // // Determine if System_Info is needed and how it must be handled
     bool need_si = (!strcmp(CONFIG.mach, "pc") || !strcmp(CONFIG.mach, "riscv"));
     bool si_in_setup = (need_si && (boot_size == 0)); // If the image contains a boot sector, then SI will be on a separate disk sector. Otherwise, it will be inside SETUP.
-
+    //
     // Reserve space for System_Info if necessary
-    if(need_si && !si_in_setup) {
-        if(sizeof(System_Info) <= MAX_SI_LEN) {
-            image_size += pad(fd_img, MAX_SI_LEN);
-        } else {
-            fprintf(out, " failed!\n");
-            fprintf(err, "System_Info structure is too large (%li)!\n", sizeof(System_Info));
-            return 1;
-        }
-    }
+    // if(need_si && !si_in_setup) {
+    //     if(sizeof(System_Info) <= MAX_SI_LEN) {
+    //         image_size += pad(fd_img, MAX_SI_LEN);
+    //     } else {
+    //         fprintf(out, " failed!\n");
+    //         fprintf(err, "System_Info structure is too large (%li)!\n", sizeof(System_Info));
+    //         return 1;
+    //     }
+    // }
 
     // Add SETUP
+    fprintf(out, "Image Antes: %d \n", image_size);
     sprintf(file, "%s/img/setup_%s", argv[optind], CONFIG.mmod);
     if(file_exist(file)) {
-        si.bm.setup_offset = -1;
+        si.bm.setup_offset = image_size - boot_size;
         fprintf(out, "    Adding setup \"%s\":", file);
         image_size += put_file(fd_img, file);
-        image_size += pad(fd_img, 4*4096 - (image_size % 4096));
+        // image_size += pad(fd_img, 4*4096 - (image_size % 4096));
     } else
         si.bm.setup_offset = -1;
+    fprintf(out, "Image Depois: %d \n", image_size);
 
     // Add INIT and OS (for mode != library only)
     if(!strcmp(CONFIG.mode, "library")) {
@@ -235,16 +237,25 @@ int main(int argc, char **argv)
         si.bm.system_offset = -1;
     } else {
         // Add INIT
+        fprintf(out, "Image Antes Init: %d \n", image_size);
+
         si.bm.init_offset = image_size - boot_size;
+
         sprintf(file, "%s/img/init_%s", argv[optind], CONFIG.mmod);
         fprintf(out, "    Adding init \"%s\":", file);
         image_size += put_file(fd_img, file);
+        fprintf(out, "Image Depois Init: %d \n", image_size);
 
         // Add SYSTEM
+        fprintf(out, "Image Antes System: %d \n", image_size);
+
         si.bm.system_offset = image_size - boot_size;
         sprintf(file, "%s/img/system_%s", argv[optind], CONFIG.mmod);
         fprintf(out, "    Adding system \"%s\":", file);
         image_size += put_file(fd_img, file);
+
+        fprintf(out, "Image Depois System: %d \n", image_size);
+
     }
 
     // Add application(s) and data
@@ -256,6 +267,7 @@ int main(int argc, char **argv)
     else { // multiple APPs or data
         // si.bm.extras_offset = image_size - boot_size;
         // struct stat file_stat;
+        fprintf(out, "    optind \"%d\":", optind);
         for(int i = 4; i < argc; i++) {
             si.bm.application_offset[i-3] = image_size - boot_size;
             fprintf(out, "    Adding application \"%s\":", argv[i]);
@@ -274,55 +286,61 @@ int main(int argc, char **argv)
     si.bm.img_size = image_size - boot_size;
 
     // Add System_Info
-    if(need_si) {
-        unsigned int si_offset = boot_size;
-        fprintf(out, "    Adding system info");
-        if(si_in_setup) {
-            fprintf(out, " to SETUP:");
-            struct stat stat;
-            if(fstat(fd_img, &stat) < 0)  {
-                fprintf(out, " failed! (stat)\n");
-                return 0;
-            }
-            char * buffer = (char *) malloc(stat.st_size);
-            if(!buffer) {
-                fprintf(out, " failed! (malloc)\n");
-                return 0;
-            }
-            memset(buffer, '\1', stat.st_size);
-            lseek(fd_img, 0, SEEK_SET);
-            if(read(fd_img, buffer, stat.st_size) < 0) {
-                fprintf(out, " failed! (read)\n");
-                free(buffer);
-                return 0;
-            }
+    unsigned int si_offset = boot_size;
+    fprintf(out, "    Adding system info");
+    if(si_in_setup) {
+      fprintf(out, " to SETUP:\n");
+      struct stat stat;
+      if(fstat(fd_img, &stat) < 0)  {
+        fprintf(out, " failed! (stat)\n");
+        return 0;
+      }
+      char * buffer = (char *) malloc(stat.st_size);
+      if(!buffer) {
+        fprintf(out, " failed! (malloc)\n");
+        return 0;
+      }
+      memset(buffer, '\1', stat.st_size);
+      lseek(fd_img, 0, SEEK_SET);
+      if(read(fd_img, buffer, stat.st_size) < 0) {
+        fprintf(out, " failed! (read)\n");
+        free(buffer);
+        return 0;
+      }
 
-            char placeholder[] = "System_Info placeholder. Actual System_Info will be added by mkbi!";
-            char * setup_si = reinterpret_cast<char *>(memmem(buffer, stat.st_size, placeholder, strlen(placeholder)));
-            if(setup_si) {
-                si_offset = setup_si - buffer;
-            } else {
-                fprintf(out, " failed! (SETUP does not contain System_Info placeholder)\n");
-                free(buffer);
-                return 0;
-            }
-        } else {
-            fprintf(out, " to image:");
-            si_offset = boot_size;
-        }
-        if(lseek(fd_img, si_offset, SEEK_SET) < 0) {
-            fprintf(err, "Error: can't seek the boot image!\n");
-            return 1;
-        }
-        switch(CONFIG.word_size) {
-        case  8: if(!add_boot_map<char>(fd_img, &si)) return 1; break;
-        case 16: if(!add_boot_map<short>(fd_img, &si)) return 1; break;
-        case 32: if(!add_boot_map<long>(fd_img, &si)) return 1; break;
-        case 64: if(!add_boot_map<long long>(fd_img, &si)) return 1; break;
-        default: return 1;
-        }
-        fprintf(out, " done.\n");
+      fprintf(out, "Setup Offset: %d \n", si.bm.setup_offset);
+      fprintf(out, "Init Offset: %d \n", si.bm.init_offset);
+      fprintf(out, "System Offset: %d \n", si.bm.system_offset);
+
+      char placeholder[] = "<System_Info placeholder>"; //Actual System_Info will be added by mkbi!
+      void * memmem_res = memmem(buffer, stat.st_size, placeholder, strlen(placeholder));
+      fprintf(out, "memmem res: %s \n", memmem_res);
+      char * setup_si = reinterpret_cast<char *>(memmem_res);
+      if(setup_si) {
+        si_offset = setup_si - buffer;
+      } else {
+        fprintf(out, " failed! (SETUP does not contain System_Info placeholder)\n");
+        free(buffer);
+        return 0;
+      }
+    } else {
+      fprintf(out, " to image:");
+      si_offset = boot_size;
     }
+    if(lseek(fd_img, si_offset, SEEK_SET) < 0) {
+      fprintf(err, "Error: can't seek the boot image!\n");
+      return 1;
+    }
+    switch(CONFIG.word_size) {
+      case  8: if(!add_boot_map<char>(fd_img, &si)) return 1; break;
+      case 16: if(!add_boot_map<short>(fd_img, &si)) return 1; break;
+      case 32: if(!add_boot_map<long>(fd_img, &si)) return 1; break;
+      case 64: if(!add_boot_map<long long>(fd_img, &si)) return 1; break;
+      default: return 1;
+    }
+    fprintf(out, " done.\n");
+    // if(need_si) {
+    // }
 
     // Adding MACH specificities
     fprintf(out, "\n  Adding specific boot features of \"%s\":", CONFIG.mmod);
@@ -346,12 +364,12 @@ int main(int argc, char **argv)
         for(unsigned int i = 0; i < 8; i++)
             fprintf(out, "%.2x", si.bm.uuid[i]);
         fprintf(out, "\n");
-        fprintf(out, "    img_size: \t%ld\n", si.bm.img_size);
-        fprintf(out, "    setup:    \t%#010lx\n", si.bm.setup_offset);
-        fprintf(out, "    init:     \t%#010lx\n", si.bm.init_offset);
-        fprintf(out, "    os:       \t%#010lx\n", si.bm.system_offset);
-        fprintf(out, "    app:      \t%#010lx\n", si.bm.application_offset[0]);
-        fprintf(out, "    extras:   \t%#010lx\n", si.bm.extras_offset);
+        fprintf(out, "    img_size: \t%d\n", si.bm.img_size);
+        fprintf(out, "    setup:    \t%#010x\n", si.bm.setup_offset);
+        fprintf(out, "    init:     \t%#010x\n", si.bm.init_offset);
+        fprintf(out, "    os:       \t%#010x\n", si.bm.system_offset);
+        fprintf(out, "    app:      \t%#010x\n", si.bm.application_offset[0]);
+        fprintf(out, "    extras:   \t%#010x\n", si.bm.extras_offset);
     }
 
     // Finish
@@ -700,9 +718,17 @@ bool file_exist(char *file)
 //=============================================================================
 int put_file(int fd_out, char * file)
 {
+
+    fprintf(out, "Entrou no Put File\n");
+
+
+
     int fd_in;
     struct stat stat;
     char * buffer;
+
+    fprintf(out, "Entrou Stat Size: %ld \n", stat.st_size);
+
 
     fd_in = open(file, O_RDONLY);
     if(fd_in < 0) {
@@ -738,6 +764,9 @@ int put_file(int fd_out, char * file)
     close(fd_in);
 
     fprintf(out, " done.\n");
+
+    fprintf(out, "Return Stat Size: %ld \n", stat.st_size);
+
 
     return stat.st_size;
 }
