@@ -281,7 +281,7 @@ void Setup::build_lm()
         for(int i = 0; i < ini_elf->segments(); i++) {
             if((ini_elf->segment_size(i) == 0) || (ini_elf->segment_type(i) != PT_LOAD))
                 continue;
-            if((ini_elf->segment_address(i) < INIT) || (ini_elf->segment_address(i) > SYS)) {
+            if((ini_elf->segment_address(i) < INIT) || (ini_elf->segment_address(i) > SYS) || (! ini_elf->segment_address(i))) {
                 db<Setup>(WRN) << "Ignoring OS ELF segment " << i << " at " << hex << ini_elf->segment_address(i) << "!"<< endl;
                 continue;
             }
@@ -331,11 +331,12 @@ void Setup::build_lm()
             db<Setup>(WRN) << "System Addres: " << sys_elf->segment_address(i) << endl;
             if((sys_elf->segment_size(i) == 0) || (sys_elf->segment_type(i) != PT_LOAD))
                 continue;
+
             if((sys_elf->segment_address(i) < SYS) || (sys_elf->segment_address(i) > SYS_HIGH)) {
                 db<Setup>(WRN) << "Ignoring OS ELF segment " << i << " at " << hex << sys_elf->segment_address(i) << "!"<< endl;
                 continue;
             }
-            assert(sys_elf->segment_address(i) != 0UL);
+            // assert(sys_elf->segment_address(i) != 0UL);
             db<Setup>(WRN) << "System Segment: " << sys_elf->segment_address(i) << endl;
             if(sys_elf->segment_address(i) < SYS_DATA) { // CODE
                 if(si->lm.sys_code_size == 0) {
