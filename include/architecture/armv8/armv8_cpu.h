@@ -464,8 +464,9 @@ if(interrupt) {
                 msr    spsr_el1, x0                                             \t\n\
                 ldr    x0, [sp], #8                                             \t\n\
                 msr    elr_el1, x0                                              \t");
-} else
+} else {
     ASM("       ldr   x30, [sp], #8             // pop PSTATE into x30          \t" : : : "cc");
+}
 
     ASM("       ldp    x0,  x1, [sp], #16                                       \t\n\
                 ldp    x2,  x3, [sp], #16                                       \t\n\

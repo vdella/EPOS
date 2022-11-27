@@ -84,6 +84,8 @@ class IC: private IC_Common, private CLINT
 private:
     typedef CPU::Reg Reg;
 
+    static const bool multitask = Traits<System>::multitask;
+
 public:
     static const unsigned int EXCS = CPU::EXCEPTIONS;
     static const unsigned int IRQS = CLINT::IRQS;
@@ -93,7 +95,7 @@ public:
     using IC_Common::Interrupt_Handler;
 
     enum {
-        INT_SYS_TIMER = EXCS + IRQ_MAC_TIMER
+        INT_SYS_TIMER   = EXCS + (multitask ? IRQ_SUP_TIMER : IRQ_MAC_TIMER)
     };
 
 public:
@@ -112,7 +114,10 @@ public:
 
     static void enable() {
         db<IC>(TRC) << "IC::enable()" << endl;
-        CPU::mie(CPU::MSI | CPU::MTI | CPU::MEI);
+        if(multitask)
+            CPU::sie(CPU::SSI | CPU::STI | CPU::SEI);
+        else
+            CPU::mie(CPU::MSI | CPU::MTI | CPU::MEI);
     }
 
     static void enable(Interrupt_Id i) {
@@ -124,8 +129,11 @@ public:
 
     static void disable() {
         db<IC>(TRC) << "IC::disable()" << endl;
-        CPU::miec(CPU::MSI | CPU::MTI | CPU::MEI);
-    }
+        if(multitask)
+            CPU::siec(CPU::SSI | CPU::STI | CPU::SEI);
+        else
+            CPU::miec(CPU::MSI | CPU::MTI | CPU::MEI);
+}
 
     static void disable(Interrupt_Id i) {
         db<IC>(TRC) << "IC::disable(int=" << i << ")" << endl;
@@ -136,7 +144,7 @@ public:
 
     static Interrupt_Id int_id() {
         // Id is retrieved from [m|s]cause even if mip has the equivalent bit up, because only [m|s]cause can tell if it is an interrupt or an exception
-        Reg id = CPU::mcause();
+        Reg id = (multitask) ? CPU::scause() : CPU::mcause();
         if(id & INTERRUPT)
             return irq2int(id & INT_MASK);
         else

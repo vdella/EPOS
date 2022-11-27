@@ -10,6 +10,7 @@ __BEGIN_SYS
 struct Memory_Map
 {
 private:
+    static const bool multitask = Traits<System>::multitask;
     static const bool emulated = (Traits<CPU>::WORD_SIZE != 64); // specifying a SiFive-U with RV32 sets QEMU machine to Virt
 
 public:
@@ -21,7 +22,8 @@ public:
         RAM_TOP         = Traits<Machine>::RAM_TOP,
         MIO_BASE        = Traits<Machine>::MIO_BASE,
         MIO_TOP         = Traits<Machine>::MIO_TOP,
-        BOOT_STACK      = RAM_TOP + 1 - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
+        INT_M2S         = RAM_TOP + 1 - 4096,   // the last page is used by the _int_m2s() interrupt forwarder installed by SETUP; code and stack share the same page, with code at the bottom and the stack at the top
+        BOOT_STACK      = (multitask ? INT_M2S : RAM_TOP + 1) - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
         FREE_BASE       = RAM_BASE,
         FREE_TOP        = BOOT_STACK,
 
@@ -57,14 +59,14 @@ public:
         IO              = Traits<Machine>::IO,
 
         SYS             = Traits<Machine>::SYS,
-        SYS_CODE        = NOT_USED,
-        SYS_INFO        = NOT_USED,
-        SYS_PT          = NOT_USED,
-        SYS_PD          = NOT_USED,
-        SYS_DATA        = NOT_USED,
-        SYS_STACK       = NOT_USED,
-        SYS_HEAP        = NOT_USED,
-        SYS_HIGH        = NOT_USED
+        SYS_CODE        = multitask ? SYS + 0x00000000 : NOT_USED,
+        SYS_INFO        = multitask ? SYS + 0x00100000 : NOT_USED,
+        SYS_PT          = multitask ? SYS + 0x00101000 : NOT_USED,
+        SYS_PD          = multitask ? SYS + 0x00102000 : NOT_USED,
+        SYS_DATA        = multitask ? SYS + 0x00103000 : NOT_USED,
+        SYS_STACK       = multitask ? SYS + 0x00200000 : NOT_USED,
+        SYS_HEAP        = multitask ? SYS + 0x00400000 : NOT_USED,
+        SYS_HIGH        = multitask ? SYS + 0x007fffff : NOT_USED
     };
 };
 

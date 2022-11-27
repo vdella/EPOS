@@ -20,11 +20,11 @@ public:
     // Modifications to this map requires adjustments at MKBI and SETUP
     struct Boot_Map
     {
-        volatile unsigned short n_cpus;   // Number of CPUs in SMPs
         PAddr mem_base;                   // Memory base address
         PAddr mem_top;                    // Memory top address
         PAddr mio_base;                   // Memory-mapped I/O base address
         PAddr mio_top;                    // Memory-mapped I/O top address
+        volatile unsigned short n_cpus;   // Number of CPUs in SMPs
         short node_id;                    // Local node id in SAN (-1 => RARP)
         int space_x;                      // Spatial coordinates of a node (-1 => mobile)
         int space_y;                      //

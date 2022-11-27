@@ -1,5 +1,6 @@
 // EPOS RISC-V IC Mediator Implementation
 
+#include <architecture.h>
 #include <machine/machine.h>
 #include <machine/ic.h>
 #include <machine/timer.h>
@@ -59,11 +60,11 @@ void IC::int_not(Interrupt_Id id)
 
 void IC::exception(Interrupt_Id id)
 {
-    CPU::Reg epc = CPU::mepc();
+    CPU::Reg epc = CPU::epc();
     CPU::Reg sp = CPU::sp();
-    CPU::Reg status = CPU::mstatus();
-    CPU::Reg cause = CPU::mcause();
-    CPU::Reg tval = CPU::mtval();
+    CPU::Reg status = CPU::status();
+    CPU::Reg cause = CPU::cause();
+    CPU::Reg tval = CPU::tval();
     Thread * thread = Thread::self();
 
     db<IC,System>(WRN) << "IC::Exception(" << id << ") => {" << hex << "thread=" << thread << ",epc=" << epc << ",sp=" << sp << ",status=" << status << ",cause=" << cause << ",tval=" << tval << "}" << dec;
