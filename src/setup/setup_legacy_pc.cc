@@ -30,6 +30,9 @@ extern OStream kout, kerr;
 class Setup
 {
 private:
+    // System Traits
+    static const bool multitask = Traits<System>::multitask;
+
     // Physical memory map
     static const unsigned long RAM_BASE         = Memory_Map::RAM_BASE;
     static const unsigned long RAM_TOP          = Memory_Map::RAM_TOP;

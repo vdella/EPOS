@@ -20,8 +20,8 @@ public:
     static const unsigned int NOT_USED          = 0xffffffff;
 
     // Physical Memory
-    static const unsigned int ROM_BASE          = 0x20400000;                           // 512 MB
-    static const unsigned int ROM_TOP           = 0x3fffffff;                           // 512 MB + 512 MB
+    static const unsigned int ROM_BASE          = 0x20400000;                           // 516 MB
+    static const unsigned int ROM_TOP           = 0x3fffffff;                           // 1 GB
     static const unsigned int RAM_BASE          = 0x80000000;                           // 2 GB
     static const unsigned int RAM_TOP           = 0x80003fff;                           // 2 GB + 16 KB
     static const unsigned int MIO_BASE          = 0x00000000;
@@ -46,8 +46,8 @@ public:
 
     // Default Sizes and Quantities
     static const unsigned int MAX_THREADS       = 7;
-    static const unsigned int STACK_SIZE        = 640;
-    static const unsigned int HEAP_SIZE         = 512;
+    static const unsigned int STACK_SIZE        = 756;
+    static const unsigned int HEAP_SIZE         = 6144;
 };
 
 template <> struct Traits<IC>: public Traits<Machine_Common>
