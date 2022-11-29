@@ -595,7 +595,7 @@ bool parse_config(FILE * cfg_file, Configuration * cfg)
 //=============================================================================
 template<typename T> bool add_boot_map(int fd, System_Info * si)
 {
-    if(!put_number(fd, static_cast<T>(si->bm.n_cpus)))
+    if(!put_number(fd, si->bm.n_cpus))
         return false;
     if(!put_number(fd, static_cast<T>(si->bm.mem_base)))
         return false;
@@ -606,7 +606,6 @@ template<typename T> bool add_boot_map(int fd, System_Info * si)
         return false;
     if(!put_number(fd, static_cast<T>(si->bm.mio_top)))
         return false;
-
     if(!put_number(fd, si->bm.node_id))
         return false;
     if(!put_number(fd, si->bm.space_x))
@@ -719,15 +718,11 @@ bool file_exist(char *file)
 int put_file(int fd_out, char * file)
 {
 
-    fprintf(out, "Entrou no Put File\n");
-
 
 
     int fd_in;
     struct stat stat;
     char * buffer;
-
-    fprintf(out, "Entrou Stat Size: %ld \n", stat.st_size);
 
 
     fd_in = open(file, O_RDONLY);
@@ -765,7 +760,7 @@ int put_file(int fd_out, char * file)
 
     fprintf(out, " done.\n");
 
-    fprintf(out, "Return Stat Size: %ld \n", stat.st_size);
+    // fprintf(out, "Return Stat Size: %ld \n", stat.st_size);
 
 
     return stat.st_size;

@@ -235,12 +235,7 @@ void Setup::build_lm()
     db<Setup>(WRN) << "Init Offset: " << si->bm.init_offset << endl;
     db<Setup>(WRN) << "System Offset: " << si->bm.system_offset << endl;
     db<Setup>(WRN) << "Setup Offset: " << si->bm.setup_offset << endl;
-
-    unsigned long setup_offset = si->bm.setup_offset;
-    db<Setup>(WRN) << "Setup Offset Long " << setup_offset << endl;
-    assert(setup_offset == 0);
-    assert(setup_offset == 0u);
-
+    db<Setup>(WRN) << "Application Offset: " << si->bm.application_offset[0] << endl;
 
 
     if(si->lm.has_stp) {
@@ -322,13 +317,15 @@ void Setup::build_lm()
             db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
         si->lm.sys_entry = sys_elf->entry();
         for (int i = 0 ; i < sys_elf->segments(); i++) {
-          db<Setup>(WRN) << "Segment Iteration: " << sys_elf->segment_address(i) << endl;
-          db<Setup>(WRN) << "Segment Type: " << sys_elf->segment_type(i) << endl;
+          db<Setup>(WRN) << "Segment Size: " << sys_elf->segment_size(i) << endl;
+
+          // db<Setup>(WRN) << "Segment Iteration: " << sys_elf->segment_address(i) << endl;
+          // db<Setup>(WRN) << "Segment Type: " << sys_elf->segment_type(i) << endl;
         }
-        db<Setup>(WRN) << "PT_LOAD: " << PT_LOAD << endl;
+        // db<Setup>(WRN) << "PT_LOAD: " << PT_LOAD << endl;
         for(int i = 0; i < sys_elf->segments(); i++) {
             assert(SYS > 0x0);
-            db<Setup>(WRN) << "System Addres: " << sys_elf->segment_address(i) << endl;
+            // db<Setup>(WRN) << "System Addres: " << sys_elf->segment_address(i) << endl;
             if((sys_elf->segment_size(i) == 0) || (sys_elf->segment_type(i) != PT_LOAD))
                 continue;
 
@@ -337,8 +334,9 @@ void Setup::build_lm()
                 continue;
             }
             // assert(sys_elf->segment_address(i) != 0UL);
-            db<Setup>(WRN) << "System Segment: " << sys_elf->segment_address(i) << endl;
+            // db<Setup>(WRN) << "System Segment: " << sys_elf->segment_address(i) << endl;
             if(sys_elf->segment_address(i) < SYS_DATA) { // CODE
+                // db<Setup>(WRN) << "Sys Code Init: " << si->lm.sys_code << endl;
                 if(si->lm.sys_code_size == 0) {
                     si->lm.sys_code_size = sys_elf->segment_size(i);
                     si->lm.sys_code = sys_elf->segment_address(i);
@@ -349,6 +347,7 @@ void Setup::build_lm()
                     si->lm.sys_code_size = sys_elf->segment_address(i) - si->lm.sys_code;
                 } else
                     si->lm.sys_code_size += sys_elf->segment_size(i);
+                // db<Setup>(WRN) << "Sys Code End: " << si->lm.sys_code << endl;
             } else { // DATA
                 if(sys_elf->segment_address(i) < si->lm.sys_data)
                     si->lm.sys_data = sys_elf->segment_address(i);

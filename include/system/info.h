@@ -13,7 +13,7 @@ struct System_Info_Common
 protected:
     typedef unsigned long LAddr;
     typedef unsigned long PAddr;
-    typedef unsigned int Size;
+    typedef unsigned long Size;
 
 public:
     struct App_Load_Map
@@ -47,7 +47,7 @@ public:
         int space_y;                      //
         int space_z;                      //
         unsigned char uuid[8];            // EPOS image Universally Unique Identifier
-        unsigned int n_apps;
+        unsigned long n_apps;
         Size img_size;                    // Boot image size (in bytes)
         Size setup_offset;                // Image offsets (-1 => not present)
         Size init_offset;
