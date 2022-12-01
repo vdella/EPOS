@@ -22,7 +22,7 @@ void Thread::init()
     if(Traits<System>::multitask) {
         char * bi = reinterpret_cast<char*>(Memory_Map::RAM_BASE);
 
-        for(unsigned i = 0; i < si->bm.n_apps; i++) {
+        // for(unsigned i = 0; i < si->bm.n_apps; i++) {
              // We need W permission to load the segment
             Segment * code_seg = new (SYSTEM) Segment(4*1024*1024, MMU::RV64_Flags::UA);
             Segment * data_seg = new (SYSTEM) Segment(4*1024*1024, MMU::RV64_Flags::UA);
@@ -32,7 +32,7 @@ void Thread::init()
             Task::activate(app_task);
 
             if(si->lm.has_app) {
-                ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset[i]]);
+                ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
                 db<Setup>(TRC) << "Setup::load_app()" << endl;
                 if(app_elf->load_segment(0) < 0) {
                     db<Setup>(ERR) << "Application code segment was corrupted during INIT!" << endl;
@@ -45,8 +45,8 @@ void Thread::init()
                     }
             }
 
-            new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), reinterpret_cast<Main *>(si->lm.app[i].app_entry));
-        }
+            new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), reinterpret_cast<Main *>(si->lm.app_entry));
+        // }
 
         // We need to be in the AS of the first thread.
         Task::activate(Thread::self()->_task);

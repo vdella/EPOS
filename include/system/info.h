@@ -16,43 +16,25 @@ protected:
     typedef unsigned long Size;
 
 public:
-    struct App_Load_Map
-    {
-      private:
-          typedef unsigned long LAddr;
-          typedef unsigned long PAddr;
-          typedef unsigned long Size;
-
-      public:
-          LAddr app_entry;
-          Size  app_segments;
-          LAddr app_code;
-          Size  app_code_size;
-          LAddr app_data;
-          LAddr app_stack;
-          LAddr app_heap;
-          Size  app_data_size;
-    };
     // The information we have at boot time (built by MKBI)
     // Modifications to this map requires adjustments at MKBI and SETUP
     struct Boot_Map
     {
-        volatile unsigned short n_cpus;   // Number of CPUs in SMPs
         PAddr mem_base;                   // Memory base address
         PAddr mem_top;                    // Memory top address
         PAddr mio_base;                   // Memory-mapped I/O base address
         PAddr mio_top;                    // Memory-mapped I/O top address
+        volatile unsigned short n_cpus;   // Number of CPUs in SMPs
         short node_id;                    // Local node id in SAN (-1 => RARP)
         int space_x;                      // Spatial coordinates of a node (-1 => mobile)
         int space_y;                      //
         int space_z;                      //
         unsigned char uuid[8];            // EPOS image Universally Unique Identifier
-        unsigned long n_apps;
         Size img_size;                    // Boot image size (in bytes)
         Size setup_offset;                // Image offsets (-1 => not present)
         Size init_offset;
         Size system_offset;
-        Size application_offset[8];
+        Size application_offset;
         Size extras_offset;
     };
 
@@ -120,15 +102,14 @@ public:
         Size  sys_data_size;
         LAddr sys_stack;
         Size  sys_stack_size;
-        App_Load_Map app[8];
-        // LAddr app_entry;
-        // Size  app_segments;
-        // LAddr app_code;
-        // Size  app_code_size;
-        // LAddr app_data;
-        // LAddr app_stack;
-        // LAddr app_heap;
-        // Size  app_data_size;
+        LAddr app_entry;
+        Size  app_segments;
+        LAddr app_code;
+        Size  app_code_size;
+        LAddr app_data;
+        LAddr app_stack;
+        LAddr app_heap;
+        Size  app_data_size;
         LAddr app_extra;
         Size  app_extra_size;
     };
