@@ -100,8 +100,8 @@ UUID		= $(shell cat /proc/sys/kernel/random/uuid | sed 's/-//g')
 ia32_COMP_PREFIX	:= /usr/bin/x86_64-linux-gnu-
 armv7_COMP_PREFIX	:= /usr/bin/arm-none-eabi-
 armv8_COMP_PREFIX	:= /usr/bin/aarch64-linux-gnu-
-rv32_COMP_PREFIX	:= /usr/local/rv32/bin/riscv32-unknown-linux-gnu-
-rv64_COMP_PREFIX	:= /usr/local/rv64/bin/riscv64-unknown-linux-gnu-
+rv32_COMP_PREFIX	:= /home/haku/Documents/SO2/rv32/bin/riscv32-unknown-linux-gnu-
+rv64_COMP_PREFIX	:= /home/haku/Documents/SO2/rv64/bin/riscv64-unknown-linux-gnu-
 COMP_PREFIX		= $($(ARCH)_COMP_PREFIX)
 
 # Architecture specifics
@@ -139,7 +139,7 @@ endif
 ifeq ($(MMOD),zynq)
 cortex_CC_FLAGS		:= -mcpu=cortex-a9
 cortex_AS_FLAGS		:= -mcpu=cortex-a9
-cortex_EMULATOR		= qemu-system-arm $(QEMU_DEBUG) -machine xilinx-zynq-a9 -smp $(CPUS) -m $(MEM_SIZE)k -serial null -serial mon:stdio -nographic -no-reboot $(BOOT_ROM) -kernel 
+cortex_EMULATOR		= qemu-system-arm $(QEMU_DEBUG) -machine xilinx-zynq-a9  -smp $(CPUS) -m $(MEM_SIZE)k -serial null -serial mon:stdio -nographic -no-reboot $(BOOT_ROM) -kernel 
 cortex_DEBUGGER		:= gdb
 cortex_FLASHER		= $(TLS)/eposflash/eposflash-$(MMOD) -d /dev/ttyACM0 -f
 cortex_MAGIC		:= --omagic
@@ -215,8 +215,8 @@ else
 riscv_CC_FLAGS      := -march=rv32gc -mabi=ilp32d -Wl, -mno-relax
 riscv_AS_FLAGS      := -march=rv32gc -mabi=ilp32d
 riscv_LD_FLAGS      := -m elf32lriscv_ilp32f --no-relax
-riscv_EMULATOR		= qemu-system-riscv32 $(QEMU_DEBUG) -machine virt -cpu rv32 -smp $(CPUS) -m $(MEM_SIZE)k -serial mon:stdio -bios none -nographic -no-reboot $(BOOT_ROM) -kernel 
-endif 
+riscv_EMULATOR     = qemu-system-riscv32 $(QEMU_DEBUG) -machine virt -cpu rv32 -smp $(CPUS) -m $(MEM_SIZE)k -serial mon:stdio -bios none -nographic -no-reboot $(BOOT_ROM) -kernel 
+endif
 riscv_DEBUGGER		:= $(COMP_PREFIX)gdb
 riscv_FLASHER		:= 
 riscv_MAGIC		:= --nmagic
@@ -249,9 +249,9 @@ MACH_MAGIC		:= $($(MACH)_MAGIC)
 MACH_IMGSUFF		:= $($(MACH)_IMG_SUFFIX)
 
 ifeq ($(DEBUG),1)
-MACH_CC_FLAGS		:= -g -feliminate-unused-debug-symbols $(MACH_CC_FLAGS)
-MACH_CXX_FLAGS		:= -g -feliminate-unused-debug-symbols $(MACH_CXX_FLAGS)
-MACH_AS_FLAGS		:= -g $(MACH_AS_FLAGS)
+MACH_CC_FLAGS		:= -gdwarf-2 -feliminate-unused-debug-symbols $(MACH_CC_FLAGS)
+MACH_CXX_FLAGS		:= -gdwarf-2 -feliminate-unused-debug-symbols $(MACH_CXX_FLAGS)
+MACH_AS_FLAGS		:= -gdwarf-2 $(MACH_AS_FLAGS)
 MACH_EMULATOR		= $(subst -m ,-gdb tcp::1235 -S -m ,$($(MACH)_EMULATOR))
 endif
 
@@ -378,10 +378,10 @@ lib%.o: lib%.cc
 		$(AR) $(ARFLAGS) $@ $^
 
 %.img: %
-		$(MKBI) $@ hello 
+		$(MKBI) $@ $<
 
 %.hex: %
-		$(OBJCOPY) -I elf64-$(ARCH_ENDIANESS) -O ihex $< $<.tmp
+		$(OBJCOPY) -I elf32-$(ARCH_ENDIANESS) -O ihex $< $<.tmp
 		$(MKBI) $@ $<.tmp
 		$(CLEAN) $<.tmp
 

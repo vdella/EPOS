@@ -178,7 +178,7 @@ void Setup::load_parts()
     // Load INIT
     if (si->lm.has_ini)
     {
-        db<Setup>(TRC) << "Setup_SifiveE::load_init()" << endl;
+        db<Setup>(TRC) << "Setup_SifiveU::load_init()" << endl;
         if (ini_elf->load_segment(0) < 0)
         {
             db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
@@ -252,6 +252,13 @@ void Setup::build_lm()
         }
     }
 
+    db<Setup>(WRN) << "Setup Offset! " << si->bm.setup_offset << endl;
+    db<Setup>(WRN) << "Init Offset! " << si->bm.init_offset << endl;
+    db<Setup>(WRN) << "System Offset! " << si->bm.system_offset << endl;
+    db<Setup>(WRN) << "Application Offset! " << si->bm.application_offset << endl;
+
+
+
     // Check INIT integrity and get the size of its segments
     si->lm.ini_entry = 0;
     si->lm.ini_segments = 0;
@@ -290,13 +297,18 @@ void Setup::build_lm()
     si->lm.sys_stack_size = Traits<System>::STACK_SIZE;
     if(si->lm.has_sys) {
         ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+        for (int i = 0; i < sys_elf->segments(); i++) {
+          // db<Setup>(WRN) << "Segment!" << sys_elf->segment_size(i) << endl;
+        }
         if(!sys_elf->valid())
             db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
         si->lm.sys_entry = sys_elf->entry();
         for(int i = 0; i < sys_elf->segments(); i++) {
-            if((sys_elf->segment_size(i) == 0) || (sys_elf->segment_type(i) != PT_LOAD))
-                db<Setup>(WRN) << "OS ELF image has an invalid segment!" << endl;
+            // db<Setup>(WRN) << "Index!" << i << endl;
+            if((sys_elf->segment_size(i) == 0) || (sys_elf->segment_type(i) != PT_LOAD)) {
+                db<Setup>(WRN) << "OS ELF image has an invalid segment!" << sys_elf->segment_size(i) << endl;
                 continue;
+            }
             if((sys_elf->segment_address(i) < SYS) || (sys_elf->segment_address(i) > SYS_HIGH)) {
                 db<Setup>(WRN) << "Ignoring OS ELF segment " << i << " at " << hex << sys_elf->segment_address(i) << "!"<< endl;
                 continue;
@@ -313,14 +325,21 @@ void Setup::build_lm()
                 } else
                     si->lm.sys_code_size += sys_elf->segment_size(i);
             } else { // DATA
-                if(sys_elf->segment_address(i) < si->lm.sys_data)
-                    si->lm.sys_data = sys_elf->segment_address(i);
+                // db<Setup>(WRN) << "Segment Address!" << sys_elf->segment_address(i) << endl;
+                // db<Setup>(WRN) << "SYS DATA!" << si->lm.sys_data << endl;
+                // assert((si->lm.sys_data - sys_elf->segment_address(i)) > 0U);
+                if((si->lm.sys_data - sys_elf->segment_address(i)) > 0U) {
+                  si->lm.sys_data = sys_elf->segment_address(i);
+                  // db<Setup>(WRN) << "Entrou!" << si->lm.sys_data << endl;
+                }
                 si->lm.sys_data_size += sys_elf->segment_size(i);
             }
             si->lm.sys_segments++;
         }
+
         if(si->lm.sys_code != MMU::align_directory(si->lm.sys_code))
             db<Setup>(ERR) << "Unaligned OS code segment:" << hex << si->lm.sys_code << endl;
+        // db<Setup>(WRN) << "SYS DATA FORA DO FOR!" << si->lm.sys_data << endl;
         if(si->lm.sys_data == ~0U) {
             db<Setup>(WRN) << "OS ELF image has no data segment!" << endl;
             si->lm.sys_data = MMU::align_page(APP_DATA);
@@ -348,17 +367,25 @@ void Setup::build_lm()
     si->lm.app_extra_size = 0;
     if(si->lm.has_app) {
         ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
+        for (int i = 0; i < app_elf->segments(); i++) {
+          db<Setup>(WRN) << "Segment!" << app_elf->segment_size(i) << endl;
+        }
         if(!app_elf->valid())
             db<Setup>(ERR) << "APP ELF image is corrupted!" << endl;
         si->lm.app_entry = app_elf->entry();
         for(int i = 0; i < app_elf->segments(); i++) {
-            if((app_elf->segment_size(i) == 0) || (app_elf->segment_type(i) != PT_LOAD))
-                continue;
+            if((app_elf->segment_size(i) == 0) || (app_elf->segment_type(i) != PT_LOAD)) {
+              db<Setup>(WRN) << "APP ELF image has an invalid segment!" << app_elf->segment_size(i) << endl;
+              continue;
+            }
             if((app_elf->segment_address(i) < APP_LOW) || (app_elf->segment_address(i) > APP_HIGH)) {
                 db<Setup>(WRN) << "Ignoring APP ELF segment " << i << " at " << hex << app_elf->segment_address(i) << "!"<< endl;
                 continue;
             }
-            if(app_elf->segment_address(i) < APP_DATA) { // CODE
+            db<Setup>(WRN) << "APP DATA!" << APP_DATA << endl;
+            db<Setup>(WRN) << "APP Segment!" << app_elf->segment_address(i) << endl;
+            if((APP_DATA - app_elf->segment_address(i)) > 0U) { // CODE
+                db<Setup>(WRN) << "Entrou Code!" << endl;
                 if(si->lm.app_code_size == 0) {
                     si->lm.app_code_size = app_elf->segment_size(i);
                     si->lm.app_code = app_elf->segment_address(i);
@@ -370,7 +397,9 @@ void Setup::build_lm()
                 } else
                     si->lm.app_code_size += app_elf->segment_size(i);
             } else { // DATA
-                if(app_elf->segment_address(i) < si->lm.app_data)
+              db<Setup>(WRN) << "Segment Address!" << app_elf->segment_address(i) << endl;
+              db<Setup>(WRN) << "APP DATA!" << si->lm.app_data << endl;
+                if((si->lm.app_data - app_elf->segment_address(i)) > 0U)
                     si->lm.app_data = app_elf->segment_address(i);
                 si->lm.app_data_size += app_elf->segment_size(i);
             }
