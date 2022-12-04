@@ -311,28 +311,28 @@ int main(int argc, char **argv)
     fprintf(out, " done.\n");
 
     // Show System Info
-    // if(print_si) {
-    // }
-    fprintf(out, "  System_Info->Boot_Map:\n");
-    fprintf(out, "    mem_base: \t%#010lx\n", si.bm.mem_base);
-    fprintf(out, "    mem_top:  \t%#010lx\n", si.bm.mem_top);
-    fprintf(out, "    mio_base: \t%#010lx\n", si.bm.mio_base);
-    fprintf(out, "    mio_top:  \t%#010lx\n", si.bm.mio_top);
-    fprintf(out, "    n_cpus:   \t%u\n", si.bm.n_cpus);
-    fprintf(out, "    node_id:  \t%d\n", si.bm.node_id);
-    fprintf(out, "    space_x:  \t%d\n", si.bm.space_x);
-    fprintf(out, "    space_y:  \t%d\n", si.bm.space_y);
-    fprintf(out, "    space_z:  \t%d\n", si.bm.space_z);
-    fprintf(out, "    uuid:     \t");
-    // for(unsigned int i = 0; i < 8; i++)
-    //   fprintf(out, "%.2x", si.bm.uuid[i]);
-    fprintf(out, "\n");
-    fprintf(out, "    img_size: \t%ld\n", si.bm.img_size);
-    fprintf(out, "    setup:    \t%#010lx\n", si.bm.setup_offset);
-    fprintf(out, "    init:     \t%#010lx\n", si.bm.init_offset);
-    fprintf(out, "    os:       \t%#010lx\n", si.bm.system_offset);
-    fprintf(out, "    app:      \t%#010lx\n", si.bm.application_offset);
-    fprintf(out, "    extras:   \t%#010lx\n", si.bm.extras_offset);
+    if(print_si) {
+        fprintf(out, "  System_Info->Boot_Map:\n");
+        fprintf(out, "    mem_base: \t%#010lx\n", si.bm.mem_base);
+        fprintf(out, "    mem_top:  \t%#010lx\n", si.bm.mem_top);
+        fprintf(out, "    mio_base: \t%#010lx\n", si.bm.mio_base);
+        fprintf(out, "    mio_top:  \t%#010lx\n", si.bm.mio_top);
+        fprintf(out, "    n_cpus:   \t%u\n", si.bm.n_cpus);
+        fprintf(out, "    node_id:  \t%d\n", si.bm.node_id);
+        fprintf(out, "    space_x:  \t%d\n", si.bm.space_x);
+        fprintf(out, "    space_y:  \t%d\n", si.bm.space_y);
+        fprintf(out, "    space_z:  \t%d\n", si.bm.space_z);
+        fprintf(out, "    uuid:     \t");
+        for(unsigned int i = 0; i < 8; i++)
+            fprintf(out, "%.2x", si.bm.uuid[i]);
+        fprintf(out, "\n");
+        fprintf(out, "    img_size: \t%ld\n", si.bm.img_size);
+        fprintf(out, "    setup:    \t%#010lx\n", si.bm.setup_offset);
+        fprintf(out, "    init:     \t%#010lx\n", si.bm.init_offset);
+        fprintf(out, "    os:       \t%#010lx\n", si.bm.system_offset);
+        fprintf(out, "    app:      \t%#010lx\n", si.bm.application_offset);
+        fprintf(out, "    extras:   \t%#010lx\n", si.bm.extras_offset);
+    }
 
     // Finish
     close(fd_img);

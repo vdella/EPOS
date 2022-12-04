@@ -436,11 +436,6 @@ public:
 
     template<typename ... Tn>
     static Context * init_stack(Log_Addr usp, Log_Addr sp, void (* exit)(), int (* entry)(Tn ...), Tn ... an) {
-        // Multitasking scenarios use this method with USP != 0 for application threads, what causes two contexts to be pushed into the thread's stack.
-        // The context pushed first (and popped last) is the "regular" one, with entry pointing to the thread's entry point.
-        // The second context (popped first) is a dummy context that has first_dispatch as entry point. It is a system-level context (CPL=0),
-        // so switch_context doesn't need to care for cross-level IRETs.
-
         sp -= SIZEOF<Tn ... >::Result;
         init_stack_helper(sp, an ...);
         sp -= sizeof(int *);
@@ -616,6 +611,7 @@ if(!interrupt) {
         "       push    %cs             #   with FLAGS, CS                      \n"
         "       push    %esi            #   and IP                              \n");
 }
+
     ASM("       pusha                   # push registers                        \n");
 }
 
