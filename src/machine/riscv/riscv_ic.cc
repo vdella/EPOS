@@ -24,7 +24,6 @@ void IC::entry()
     // Entry-point for the dummy contexts used by the first dispatching of newly created threads
     ASM("       .global _int_leave              \n"
         "_int_leave:                            \n");
-
 if(Traits<IC>::hysterically_debugged) {
     ASM("       jalr    %0                      \n" : : "r"(print_context));
 }
@@ -32,7 +31,7 @@ if(Traits<IC>::hysterically_debugged) {
     // Restore context
     ASM("1:                                     \n");
     CPU::Context::pop(true);
-    CPU::sret();
+    CPU::iret();
 }
 
 void IC::dispatch()
@@ -66,9 +65,9 @@ void IC::exception(Interrupt_Id id)
     CPU::Reg status = CPU::status();
     CPU::Reg cause = CPU::cause();
     CPU::Reg tval = CPU::tval();
-    Thread * thread = Thread::self();
+    // Thread * thread = Thread::self();
 
-    // db<IC,System>(WRN) << "IC::Exception(" << id << ") => {" << hex << "thread=" << thread << ",epc=" << epc << ",sp=" << sp << ",status=" << status << ",cause=" << cause << ",tval=" << tval << "}" << dec;
+    db<IC,System>(WRN) << "IC::Exception(" << id << ") => {" << hex << "epc=" << epc << ",sp=" << sp << ",status=" << status << ",cause=" << cause << ",tval=" << tval << "}" << dec;
 
     switch(id) {
     case 0: // unaligned instruction
