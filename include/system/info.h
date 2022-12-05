@@ -54,6 +54,8 @@ public:
         PAddr sys_code;         // OS Code segment
         PAddr sys_data;         // OS Data segment
         PAddr sys_stack;        // OS Stack segment  (used only during init and for ukernels, with one stack per core)
+        PAddr ini_code;         // Init Code segment
+        PAddr ini_data;         // Init Data segment
         PAddr app_code;         // First Application code segment
         PAddr app_data;         // First Application data segment (including heap, stack, and extra)
         PAddr app_extra;        // APP EXTRA segment (copied from the boot image)

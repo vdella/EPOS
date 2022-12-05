@@ -43,7 +43,7 @@ public:
             MIO = 1 << 9, // I/O
             MASK = (1 << 10) - 1,
             APP = (V | R | W | X),
-            SYS = (V | R | W | X),
+            SYS = (V | R | W | X | A | D),
             KC = (V | R | X),
             KD = (V | R | W),
             UD = (V | R | W | U),

@@ -46,11 +46,11 @@ public:
 
 
     static const unsigned long INIT = library ? NOT_USED : 0xffffffff80000000; // RAM_BASE + 512 KB (will be part of the free memory at INIT)
-    static const unsigned long PHY_MEM  = NOT_USED;                   // 512 MB (max 1536 MB of RAM)
-    static const unsigned long IO       = NOT_USED;                        // 0 (max 512 MB of IO = MIO_TOP - MIO_BASE)
+    static const unsigned long PHY_MEM  = library ? NOT_USED: 0xFFFFFFFF80A00000;                   // 512 MB (max 1536 MB of RAM)
+    static const unsigned long IO       = 0x0000000000000000;                        // 0 (max 512 MB of IO = MIO_TOP - MIO_BASE)
     static const unsigned long SYS      = 0xffffffff80200000;
     static const unsigned long SYS_DATA = 0xffffffff80400000;
-    static const unsigned long SYS_HIGH = 0xffffffff80600000;
+    static const unsigned long SYS_HIGH = 0xffffffff80600000 - 1;
 
     // Default Sizes and Quantities
     static const unsigned int MAX_THREADS = 16;
