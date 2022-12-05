@@ -172,10 +172,17 @@ void Setup::load_parts()
     }
     memcpy(reinterpret_cast<void *>(SYS_INFO), si, sizeof(System_Info));
 
+    ELF *stp_elf = reinterpret_cast<ELF *>(&bi[si->bm.setup_offset]);
     ELF *ini_elf = reinterpret_cast<ELF *>(&bi[si->bm.init_offset]);
     ELF *sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
+    ELF *app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
 
-    // Load INIT
+    db<Setup>(TRC) << "Setup Elf: " << stp_elf << endl;
+    db<Setup>(TRC) << "Init Elf: " << ini_elf << endl;
+    db<Setup>(TRC) << "Sys Elf: " << sys_elf << endl;
+    db<Setup>(TRC) << "App Elf: " << app_elf << endl;
+
+
     if (si->lm.has_ini)
     {
         db<Setup>(TRC) << "Setup_SifiveU::load_init()" << endl;
@@ -184,12 +191,10 @@ void Setup::load_parts()
             db<Setup>(ERR) << "INIT code segment was corrupted during SETUP!" << endl;
             _panic();
         }
-        db<Setup>(TRC) << "Setup_SifiveU::load_init() => " << reinterpret_cast<void *>(ini_elf->entry()) << endl;
+        db<Setup>(TRC) << "Init ELF: " << reinterpret_cast<void *>(ini_elf->entry()) << endl;
 
         for (int i = 1; i < ini_elf->segments(); i++)
         {
-            db<Setup>(TRC) << i << endl;
-            db<Setup>(TRC) << "Setup_SifiveU::load_init() => " << reinterpret_cast<void *>(ini_elf->entry()) << endl;
             if (ini_elf->load_segment(i) < 0)
             {
                 db<Setup>(ERR) << "INIT data segment was corrupted during SETUP!" << endl;
@@ -494,19 +499,67 @@ void Setup::init_mmu()
     // Flush TLB to ensure we've got the right memory organization
 };
 
+// void Setup::call_next()
+// {
+//     db<Setup>(WRN) << "SETUP almost ready!" << endl;
+//
+//     CPU::sie(CPU::SSI | CPU::STI | CPU::SEI);
+//     CPU::sstatus(CPU::SPP_S);
+//
+//     CPU::sepc(si->lm.ini_entry);
+//     CLINT::stvec(CLINT::DIRECT, CPU::Reg(&_int_entry));
+//
+//     CPU::sret();
+//     db<Setup>(ERR) << "OS failed to init!" << endl;
+// }
+
 void Setup::call_next()
 {
-    db<Setup>(WRN) << "SETUP almost ready!" << endl;
+    // Check for next stage and obtain the entry point
+    Log_Addr pc;
+    // if(si->lm.has_ini) {
+    //   db<Setup>(TRC) << "Executing system's global constructors ..." << endl;
+    //   // reinterpret_cast<void (*)()>((void *)si->lm.sys_entry)();
+    //   db<Setup>(TRC) << "Executing cast de noia ..." << endl;
+    //
+    //   pc = si->lm.ini_entry;
+    // } else if(si->lm.has_sys)
+    // pc = si->lm.sys_entry;
+    // else
+      pc = si->lm.app_entry;
 
-    CPU::sie(CPU::SSI | CPU::STI | CPU::SEI);
-    CPU::sstatus(CPU::SPP_S);
+    // Arrange a stack for each CPU to support stage transition
+    // The 2 integers on the stacks are room for the return address
+    Log_Addr sp = SYS_STACK + Traits<System>::STACK_SIZE - 2 * sizeof(long);
 
-    CPU::sepc(si->lm.ini_entry);
-    CLINT::stvec(CLINT::DIRECT, CPU::Reg(&_int_entry));
+    db<Setup>(TRC) << "Setup::call_next(pc=" << pc << ",sp=" << sp << ") => ";
+    if(si->lm.has_ini)
+    db<Setup>(TRC) << "INIT" << endl;
+    else if(si->lm.has_sys)
+    db<Setup>(TRC) << "SYSTEM" << endl;
+    else
+    db<Setup>(TRC) << "APPLICATION" << endl;
+
+    // Set SP and call the next stage
+    CPU::sp(sp);
+
+    db<Setup>(INF) << "SETUP ends here!" << endl;
+
+    // static_cast<void (*)()>(pc)();
+
+    // This will only happen when INIT was called and Thread was disabled
+    // Note we don't have the original stack here anymore!
+    // reinterpret_cast<CPU::FSR *>(si->lm.app_entry)();
+
+    CPU::sepc(pc);
+    CLINT::stvec(CLINT::DIRECT, CPU::Reg(pc));
 
     CPU::sret();
+
+    // SETUP is now part of the free memory and this point should never be reached, but, just in case ... :-)
     db<Setup>(ERR) << "OS failed to init!" << endl;
 }
+
 
 __END_SYS
 
