@@ -69,6 +69,8 @@ private:
     static const unsigned long SYS_DATA = Memory_Map::SYS_DATA;
     static const unsigned long SYS_STACK = Memory_Map::SYS_STACK;
     static const unsigned long SYS_HIGH = Memory_Map::SYS_HIGH;
+    static const unsigned long SYS_PD = Memory_Map::SYS_PD;
+    static const unsigned long SYS_PT = Memory_Map::SYS_PT;
     static const unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
     static const unsigned int PD_ENTRIES = PT_ENTRIES;
     static const unsigned int PAGE_SIZE = 4096;
@@ -79,8 +81,9 @@ private:
     typedef CPU::Log_Addr Log_Addr;
     typedef MMU::RV64_Flags RV64_Flags;
     typedef MMU::Page Page;
-    typedef MMU::Page_Table Page_Table;
     typedef MMU::Page_Directory Page_Directory;
+    typedef MMU::Page_Table Page_Table;
+    typedef MMU::PT_Entry PT_Entry;
 
 public:
     Setup();
@@ -468,6 +471,8 @@ void Setup::build_pmm()
     // si->pmm.app_data_pts = top_page * sizeof(Page);
 
     // INIT code (1 x sizeof(Page), not listed in the PMM)
+    top_page -= MMU::pages(si->lm.ini_code_size);
+    si->pmm.ini_code = top_page * sizeof(Page);
 
     // SYSTEM code segment
     top_page -= MMU::pages(si->lm.sys_code_size);
@@ -513,8 +518,8 @@ void Setup::build_pmm()
     si->pmm.phy_mem_pts = top_page * sizeof(Page);
 
     // Test if we didn't overlap SETUP and the boot image
-    if(si->pmm.usr_mem_top <= si->lm.stp_code + si->lm.stp_code_size + si->lm.stp_data_size)
-        db<Setup>(ERR) << "SETUP would have been overwritten!" << endl;
+    // if(si->pmm.usr_mem_top <= si->lm.stp_code + si->lm.stp_code_size + si->lm.stp_data_size)
+    //     db<Setup>(ERR) << "SETUP would have been overwritten!" << endl;
 }
 
 
@@ -537,33 +542,33 @@ void Setup::setup_sys_pt()
     memset(sys_pt, 0, n_pts * sizeof(Page_Table));
 
     // System Info
-    sys_pt[MMU::index(SYS, SYS_INFO)] = MMU::phy2pte(si->pmm.sys_info, Flags::SYS);  // As a remap.
+    sys_pt[MMU::index(SYS, SYS_INFO)] = MMU::phy2pte(si->pmm.sys_info, RV64_Flags::SYS);  // As a remap.
 
     // Set an entry to this page table, so the system can access it later
-    sys_pt[MMU::index(SYS, SYS_PT)] = MMU::phy2pte(si->pmm.sys_pt, Flags::SYS);
+    sys_pt[MMU::index(SYS, SYS_PT)] = MMU::phy2pte(si->pmm.sys_pt, RV64_Flags::SYS);
 
     // System Page Directory
-    sys_pt[MMU::index(SYS, SYS_PD)] = MMU::phy2pte(si->pmm.sys_pd, Flags::SYS);
+    sys_pt[MMU::index(SYS, SYS_PD)] = MMU::phy2pte(si->pmm.sys_pd, RV64_Flags::SYS);
 
     unsigned int i;
     PT_Entry aux;
 
     // SYSTEM code
     for(i = 0, aux = si->pmm.sys_code; i < MMU::pages(si->lm.sys_code_size); i++, aux = aux + sizeof(Page))
-        sys_pt[MMU::index(SYS, SYS_CODE) + i] = MMU::phy2pte(aux, Flags::SYS);
+        sys_pt[MMU::index(SYS, SYS_CODE) + i] = MMU::phy2pte(aux, RV64_Flags::SYS);
 
     // SYSTEM data
     for(i = 0, aux = si->pmm.sys_data; i < MMU::pages(si->lm.sys_data_size); i++, aux = aux + sizeof(Page))
-        sys_pt[MMU::index(SYS, SYS_DATA) + i] = MMU::phy2pte(aux, Flags::SYS);
+        sys_pt[MMU::index(SYS, SYS_DATA) + i] = MMU::phy2pte(aux, RV64_Flags::SYS);
 
     // SYSTEM stack (used only during init and for the ukernel model)
     for(i = 0, aux = si->pmm.sys_stack; i < MMU::pages(si->lm.sys_stack_size); i++, aux = aux + sizeof(Page))
-        sys_pt[MMU::index(SYS, SYS_STACK) + i] = MMU::phy2pte(aux, Flags::SYS);
+        sys_pt[MMU::index(SYS, SYS_STACK) + i] = MMU::phy2pte(aux, RV64_Flags::SYS);
 
     // SYSTEM heap is handled by Init_System, so we don't map it here!
 
-    for(unsigned int i = 0; i < n_pts; i++)
-        db<Setup>(INF) << "SYS_PT[" << &sys_pt[i * MMU::PT_ENTRIES] << "]=" << *reinterpret_cast<Page_Table *>(&sys_pt[i * MMU::PT_ENTRIES]) << endl;
+    // for(unsigned int i = 0; i < n_pts; i++)
+    //     db<Setup>(INF) << "SYS_PT[" << &sys_pt[i * MMU::PT_ENTRIES] << "]=" << *reinterpret_cast<Page_Table *>(&sys_pt[i * MMU::PT_ENTRIES]) << endl;
 }
 
 

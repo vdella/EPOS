@@ -15,7 +15,7 @@ __BEGIN_SYS
 class MMU : public MMU_Common<9, 9, 9, 12>
 {
     friend class CPU;
-    friend class Setup_SifiveU;
+    friend class Setup;
 
 private:
     typedef Grouping_List<Log_Addr> List;
