@@ -92,6 +92,7 @@ private:
     void say_hi();
     void build_lm();
     void build_pmm();
+    void setup_ini_pt();
     void setup_sys_pt();
     void load_parts();
     void init_mmu();
@@ -126,6 +127,7 @@ Setup::Setup()
     build_lm();
     build_pmm();
 
+    setup_ini_pt();
     setup_sys_pt();
 
     load_parts();
@@ -277,8 +279,6 @@ void Setup::build_lm()
     db<Setup>(WRN) << "Init Offset! " << si->bm.init_offset << endl;
     db<Setup>(WRN) << "System Offset! " << si->bm.system_offset << endl;
     db<Setup>(WRN) << "Application Offset! " << si->bm.application_offset << endl;
-
-
 
     // Check INIT integrity and get the size of its segments
     si->lm.ini_entry = 0;
@@ -455,24 +455,21 @@ void Setup::build_pmm()
     // We'll start at the highest address to make possible a memory model
     // on which the application's logical and physical address spaces match.
 
-    Phy_Addr top_page = MMU::pages(MMODE_F);
-
-    db<Setup>(TRC) << "Setup::build_pmm() [top=" << top_page << "]" << endl;
+    // db<Setup>(TRC) << "Setup::build_pmm() [top=" << top_page << "]" << endl;
 
     // Machine to Supervisor code (1 x sizeof(Page), not listed in the PMM)
-    top_page -= 1;
+    // top_page -= 1;
 
-    // // Page tables to map the first APPLICATION code segment
-    // top_page -= MMU::page_tables(MMU::pages(si->lm.app_code_size));
-    // si->pmm.app_code_pts = top_page * sizeof(Page);
-
-    // // Page tables to map the first APPLICATION data segment (which contains heap, stack and extra)
-    // top_page -= MMU::page_tables(MMU::pages(si->lm.app_data_size));
-    // si->pmm.app_data_pts = top_page * sizeof(Page);
+    Phy_Addr top_page = INIT;
+    db<Setup>(TRC) << "Setup::build_pmm() [init=" << top_page << "]" << endl;
 
     // INIT code (1 x sizeof(Page), not listed in the PMM)
     top_page -= MMU::pages(si->lm.ini_code_size);
     si->pmm.ini_code = top_page * sizeof(Page);
+    db<Setup>(WRN) << "INIT CODE! " << hex << si->pmm.ini_code << endl;
+
+    top_page = MMU::pages(SYS_INFO);
+    db<Setup>(TRC) << "Setup::build_pmm() [top=" << top_page << "]" << endl;
 
     // SYSTEM code segment
     top_page -= MMU::pages(si->lm.sys_code_size);
@@ -523,6 +520,39 @@ void Setup::build_pmm()
 }
 
 
+void Setup::setup_ini_pt()
+{
+    db<Setup>(TRC) << "Setup::setup_ini_pt()" << endl;
+
+    // Get the physical address for the SYSTEM Page Table
+    PT_Entry * ini_pt = reinterpret_cast<PT_Entry *>(si->pmm.ini_pt);
+    unsigned long n_pts = MMU::pages(INIT);
+
+    db<Setup>(INF) << "INIT PT at " << ini_pt << " ("
+                   << n_pts << " x " << sizeof(Page) << " bytes)" << endl;
+
+    // Clear the System Page Table
+    for (unsigned int i = 0; i < n_pts * sizeof(Page_Table); i++)
+        ini_pt[i] = 0;
+
+    db<Setup>(INF) << "Mapping INIT page table entry" << endl;
+
+    // Set an entry to this page table, so the system can access it later
+    ini_pt[MMU::index(INIT, INIT)] = MMU::phy2pte(si->pmm.ini_pt, RV64_Flags::SYS);
+
+    db<Setup>(INF) << "Mapping INIT code segment" << endl;
+
+    unsigned int i;
+    PT_Entry aux;
+
+    // SYSTEM code
+    for(i = 0, aux = si->pmm.ini_code; i < MMU::pages(si->lm.ini_code_size); i++, aux = aux + sizeof(Page))
+        ini_pt[MMU::index(INIT, INIT) + i] = MMU::phy2pte(aux, RV64_Flags::SYS);
+
+    db<Setup>(INF) << "Finished INIT mapping" << endl;
+}
+
+
 void Setup::setup_sys_pt()
 {
     db<Setup>(TRC) << "Setup::setup_sys_pt(pmm="
@@ -565,10 +595,6 @@ void Setup::setup_sys_pt()
     for(i = 0, aux = si->pmm.sys_stack; i < MMU::pages(si->lm.sys_stack_size); i++, aux = aux + sizeof(Page))
         sys_pt[MMU::index(SYS, SYS_STACK) + i] = MMU::phy2pte(aux, RV64_Flags::SYS);
 
-    // SYSTEM heap is handled by Init_System, so we don't map it here!
-
-    // for(unsigned int i = 0; i < n_pts; i++)
-    //     db<Setup>(INF) << "SYS_PT[" << &sys_pt[i * MMU::PT_ENTRIES] << "]=" << *reinterpret_cast<Page_Table *>(&sys_pt[i * MMU::PT_ENTRIES]) << endl;
 }
 
 
@@ -668,11 +694,11 @@ void Setup::call_next()
 
     db<Setup>(TRC) << "Setup::call_next(pc=" << pc << ",sp=" << sp << ") => ";
     if(si->lm.has_ini)
-    db<Setup>(TRC) << "INIT" << endl;
+        db<Setup>(TRC) << "INIT" << endl;
     else if(si->lm.has_sys)
-    db<Setup>(TRC) << "SYSTEM" << endl;
+        db<Setup>(TRC) << "SYSTEM" << endl;
     else
-    db<Setup>(TRC) << "APPLICATION" << endl;
+        db<Setup>(TRC) << "APPLICATION" << endl;
 
     // Set SP and call the next stage
     CPU::sp(sp);

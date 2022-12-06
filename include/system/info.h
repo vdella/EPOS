@@ -41,6 +41,7 @@ public:
     struct Physical_Memory_Map
     {
         // Page tables
+        PAddr ini_pt;          // INIT page tables
         PAddr sys_pd;           // System Page Directory
         PAddr sys_pt;           // System Page Table
         PAddr phy_mem_pts;      // Page tables to map the whole physical memory

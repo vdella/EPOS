@@ -70,9 +70,9 @@ public:
 
         SYS             = Traits<Machine>::SYS,
         SYS_CODE        = multitask ? SYS + 0x00000000 : NOT_USED,
-        // SYS_INFO        = multitask ? SYS + 0x00100000 : NOT_USED,
-        SYS_INFO = PAGE_TABLES - 4096,
-        MMODE_F  = SYS_INFO - 4096,
+        SYS_INFO        = multitask ? SYS + 0x00100000 : NOT_USED,
+        // SYS_INFO        = PAGE_TABLES - 4096,
+        MMODE_F         = PAGE_TABLES - 4096,
         SYS_PT          = multitask ? SYS + 0x00101000 : NOT_USED,
         SYS_PD          = multitask ? SYS + 0x00102000 : NOT_USED,
         SYS_DATA        = multitask ? SYS + 0x00103000 : NOT_USED,
