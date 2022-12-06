@@ -29,6 +29,8 @@ public:
 
             System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
             char * heap;
+            db<Init>(INF) << "Nem chega aqui: " << endl;
+
             if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment);
             else

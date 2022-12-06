@@ -297,7 +297,7 @@ public:
     static Phy_Addr alloc(unsigned int bytes = 1)
     {
         Phy_Addr phy(false);
-        int size = 0;
+        unsigned long size = 0;
         if (bytes)
         {
             List::Element *e = _free.search_decrementing(bytes);
