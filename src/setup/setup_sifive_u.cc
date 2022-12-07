@@ -624,10 +624,6 @@ void Setup::init_mmu()
     kout << "SIZE: " << (Phy_Addr) (SYS_HIGH - INIT + 1) << endl;
     kout << "INDEX: " << MMU::directory_lvl_2(INIT) << endl;
 
-
-
-
-
     unsigned sys_pages = MMU::pages(SYS_HIGH - INIT + 1);
     unsigned sys_pts = MMU::page_tables(sys_pages);
     int page = MMU::directory_lvl_2(INIT);
@@ -638,6 +634,8 @@ void Setup::init_mmu()
     addr = PAGE_TABLES + (1 + PD_ENTRIES + PD_ENTRIES_LVL_2 * PD_ENTRIES) * PAGE_SIZE;
     sys_pd->remap(addr, RV64_Flags::V, 0, sys_pts);
 
+    db<Setup>(WRN) << "master[510]=" << master->get_entry(510) << endl;
+
     unsigned long sys_addr = PAGE_TABLES + (1 + PD_ENTRIES + PD_ENTRIES * PD_ENTRIES - sys_pages) * PAGE_SIZE;
     for (unsigned long i = 0; i < sys_pts; i++) {
       Page_Table * sys_pt = new ((void *)addr) Page_Table();
@@ -646,7 +644,7 @@ void Setup::init_mmu()
       sys_addr += PD_ENTRIES * PAGE_SIZE;
     }
 
-    MMU::master(master);
+    // MMU::master(master);
 
     // Set SATP and enable paging
     db<Setup>(WRN) << "Set SATP" << endl;
@@ -676,9 +674,9 @@ void Setup::call_next()
     // Check for next stage and obtain the entry point
     Log_Addr pc;
     if(si->lm.has_ini) {
-      db<Setup>(TRC) << "Executing system's global constructors ..." << endl;
-      // reinterpret_cast<void (*)()>((void *)si->lm.sys_entry)();
-      db<Setup>(TRC) << "Executing cast de noia ..." << endl;
+      db<Setup>(TRC) << "Executing system's global constructors..." << endl;
+      reinterpret_cast<void (*)()>((void *)si->lm.sys_entry)();
+      db<Setup>(TRC) << "Executing cast..." << endl;
 
       pc = si->lm.ini_entry;
     } else if(si->lm.has_sys)

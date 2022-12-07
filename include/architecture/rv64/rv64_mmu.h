@@ -179,9 +179,12 @@ public:
             db<MMU>(WRN) << "Directory pd antes " << _pd << endl;
             for (unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++)
             {
-                db<MMU>(WRN) << "i = " << i << endl;
-                (*_pd)[i] = (*_master)[i];
+                // db<MMU>(WRN) << "_master = " << _master << endl;
+                db<MMU>(WRN) << "_master[i] = " << _master->get_entry(i) << " " << i << endl;
+                // db<MMU>(WRN) << "i = " << i << endl;
+                (*_pd)[i] = _master->get_entry(i);
             }
+            db<MMU>(WRN) << "pte2phy = " << pte2phy(_master->get_entry(10)) << endl;
             db<MMU>(WRN) << "Directory pd depois " << _pd << endl;
         }
 
@@ -218,7 +221,11 @@ public:
         Log_Addr attach(const Chunk &chunk, const Log_Addr &addr)
         {
             unsigned int lvl2 = directory_lvl_2(addr);
+            db<MMU>(WRN) << "Attach lvl2: " << lvl2 << endl;
+
             unsigned int lvl1 = directory_lvl_1(addr);
+            db<MMU>(WRN) << "Attach lvl1: " << lvl1 << endl;
+
             if (!attach(lvl2, lvl1, chunk.pt(), chunk.pts(), chunk.flags()))
                 return Log_Addr(false);
 
@@ -270,11 +277,15 @@ public:
             if ((*_pd)[lvl2])
             {
 
-                Page_Directory *pd1 = new ((void *)(pte2phy((*_pd)[lvl2]))) Page_Directory();
+                Page_Directory *pd1 = new ((void *)(pte2phy(_pd->get_entry(lvl2)))) Page_Directory();
+                // db<MMU>(WRN) << "Directory pd1 " << pd1 << endl;
+
                 for (unsigned int i = lvl1; i < lvl1 + n; i++)
                 {
-                    if ((*pd1)[i])
+                    if (pd1->get_entry(i))
+                    {
                         return false;
+                    }
                 }
 
                 for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
@@ -365,7 +376,7 @@ public:
     static void flush_tlb() { CPU::flush_tlb(); }
     static void flush_tlb(Log_Addr addr) { CPU::flush_tlb(addr); }
 
-private:
+// private:
     static void init();
 
     // static Log_Addr phy2log(const Phy_Addr & phy) { return phy + (PHY_MEM - RAM_BASE); }
