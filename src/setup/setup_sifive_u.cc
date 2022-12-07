@@ -644,6 +644,12 @@ void Setup::init_mmu()
       sys_addr += PD_ENTRIES * PAGE_SIZE;
     }
 
+    db<Setup>(WRN) << "addr = " << addr << endl;
+    db<Setup>(WRN) << "sys_addr = " << sys_addr << endl;
+
+    si->pmm.free1_base = RAM_BASE;
+    si->pmm.free1_top = addr;
+
     // MMU::master(master);
 
     // Set SATP and enable paging

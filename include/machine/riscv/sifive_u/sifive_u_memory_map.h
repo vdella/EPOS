@@ -65,7 +65,7 @@ public:
         SYS_INFO = PAGE_TABLES - 4096,
         MMODE_F  = SYS_INFO - 4096,
         SYS_STACK = SYS_DATA + 4 * 1024 * 1024,
-        SYS_HEAP = NOT_USED,
+        SYS_HEAP = Traits<Machine>::SYS_HEAP,
         SYS_HIGH = Traits<Machine>::SYS_HIGH
 
         // SYS             = Traits<Machine>::SYS,

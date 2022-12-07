@@ -57,7 +57,7 @@ public:
         RV64_Flags(const Flags &f) : _flags(((f & Flags::PRE) ? V : 0) |
                                             ((f & Flags::RW) ? (R | W) : R) |
                                             ((f & Flags::USR) ? U : 0) |
-                                            ((f & Flags::EX) ? X : 0)) {}
+                                            ((f & Flags::EX) ? X : 0) | A | D) {}
         operator unsigned int() const { return _flags; }
 
     private:
@@ -106,6 +106,19 @@ public:
                 // ptes[from] = phy2pte(addr, flags);
                 addr += size;
             }
+        }
+
+        friend OStream & operator<<(OStream & os, _Page_Table & pt) {
+            os << "{\n";
+            for(unsigned int i = 0; i < PT_ENTRIES; i++)
+                if(pt[i]) {
+                    if(PD)
+                        os << "[" << i << "] \t" << pde2phy(pt[i]) << " " << hex << pde2flg(pt[i]) << dec << "\n";
+                    else
+                        os << "[" << i << "] \t" << pte2phy(pt[i]) << " " << hex << pte2flg(pt[i]) << dec << "\n";
+                }
+            os << "}";
+            return os;
         }
     };
 
@@ -211,7 +224,7 @@ public:
                     if (attach(i, j, chunk.pt(), chunk.pts(), chunk.flags()))
                     {
                         Log_Addr addr = i << (DIRECTORY_SHIFT_LVL_2) | j << DIRECTORY_SHIFT_LVL_1;
-                        db<MMU>(WRN) << "Attach Return: " << addr << "!!!!" << endl;
+                        // db<MMU>(WRN) << "Attach Return: " << addr << "!!!!" << endl;
                         return addr;
                     }
             return false;
@@ -220,16 +233,21 @@ public:
         // Used to create non-relocatable segments such as code
         Log_Addr attach(const Chunk &chunk, const Log_Addr &addr)
         {
-            unsigned int lvl2 = directory_lvl_2(addr);
+            unsigned long lvl2 = directory_lvl_2(addr);
             db<MMU>(WRN) << "Attach lvl2: " << lvl2 << endl;
 
-            unsigned int lvl1 = directory_lvl_1(addr);
+            unsigned long lvl1 = directory_lvl_1(addr);
             db<MMU>(WRN) << "Attach lvl1: " << lvl1 << endl;
 
             if (!attach(lvl2, lvl1, chunk.pt(), chunk.pts(), chunk.flags()))
                 return Log_Addr(false);
 
-            return lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
+            Log_Addr result = lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
+            db<MMU>(WRN) << "result do attach ! = " << result << endl;
+
+            if ((result >> 38) & 1) result |= 0xFFFFFF8000000000;
+
+            return result;
         }
 
         void detach(const Chunk &chunk, unsigned int lvl2 = directory_lvl_2(APP_LOW), unsigned int lvl1 = directory_lvl_1(APP_LOW))
@@ -271,6 +289,7 @@ public:
     private:
         bool attach(unsigned int lvl2, unsigned int lvl1, const Page_Table *pt, unsigned int n, RV64_Flags flags)
         {
+            db<MMU>(TRC) << "Entrou no attach" << endl;
             if (lvl2 > PD_ENTRIES_LVL_2 - 1)
                 return false;
 
@@ -290,13 +309,13 @@ public:
 
                 for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
                 {
-                    (*pd1)[i] = phy2pte(Phy_Addr(pt), flags);
+                    (*pd1)[i] = phy2pte(Phy_Addr(pt), RV64_Flags::V);
                 }
                 return true;
             }
 
             Page_Directory * pd1 = new ((void*)(_pd + (lvl2 + 1) * PAGE_SIZE)) Page_Directory();
-            _pd->remap(pd1, flags, lvl2, lvl2+1);
+            _pd->remap(pd1, RV64_Flags::V, lvl2, lvl2+1);
             return attach(lvl2, lvl1, pt, n, flags);
         }
 

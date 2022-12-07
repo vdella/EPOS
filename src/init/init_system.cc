@@ -34,7 +34,11 @@ public:
             if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment);
             else
+               { 
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
+                db<Init>(INF) << *MMU::current() << endl;
+                asm("break:");
+               }
             if(!heap)
                 db<Init>(ERR) << "Failed to initialize the system's heap!" << endl;
             System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(heap, System::_heap_segment->size());
