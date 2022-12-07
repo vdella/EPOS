@@ -29,7 +29,7 @@ public:
 
             System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
             char * heap;
-            db<Init>(INF) << "Nem chega aqui: " << endl;
+            db<Init>(INF) << "Heap Segment: " << System::_heap_segment << endl;
 
             if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment);
@@ -46,7 +46,7 @@ public:
           System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
 
         }
-        db<Init>(INF) << "Heap Size: " << HEAP_SIZE << "Pages : " << MMU::pages(HEAP_SIZE) << endl;
+        db<Init>(INF) << "Heap Size: " << HEAP_SIZE << " | Pages : " << MMU::pages(HEAP_SIZE) << endl;
         db<Init>(WRN) << "Initializing the machine: " << endl;
         Machine::init();
 

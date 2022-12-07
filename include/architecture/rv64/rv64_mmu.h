@@ -79,6 +79,7 @@ public:
 
         void map(RV64_Flags flags, int from, int to)
         {
+            db<MMU>(WRN) << "to - from=" << to - from << endl;
             Phy_Addr *addr = alloc(to - from);
             if (addr)
             {
@@ -86,6 +87,7 @@ public:
             }
             else
             {
+                db<MMU>(WRN) << "Entrou no else" << endl;
                 for (; from < to; from++)
                 {
                     ptes[from] = phy2pte(alloc(1), flags);
@@ -123,15 +125,22 @@ public:
             _to = pages(bytes);
             _pts = page_tables(_to - _from);
             _bytes = bytes;
+
+            db<MMU>(WRN) << "Chunk from " << _from << " to " << _to << endl;
+            db<MMU>(WRN) << "Chunk pts " << _pts << endl;
+
             _flags = RV64_Flags(flags);
             _pt = calloc(_pts);
             db<MMU>(WRN) << "Chunk pt " << _pt << endl;
             for (unsigned int i = 0; i < _pts; i++)
             {
-                if (i == _pts - 1)
-                    (_pt + (i * PAGE_SIZE))->map(_flags, _from, _to % 512);
-                else
+                // if(_to < 512 && _to > 0){ _from, _to} else {_from, 512  _to - 512}
+                if (_to < 512 && _to > 0)
+                    (_pt + (i * PAGE_SIZE))->map(_flags, _from, _to);
+                else {
                     (_pt + (i * PAGE_SIZE))->map(_flags, _from, 512);
+                    _to -= 512;
+                }
             }
             // _pt->map(_flags, _from, _to);
         }
@@ -167,10 +176,13 @@ public:
     public:
         Directory() : _pd(phy2log(calloc(513))), _free(true)
         {
+            db<MMU>(WRN) << "Directory pd antes " << _pd << endl;
             for (unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++)
             {
+                db<MMU>(WRN) << "i = " << i << endl;
                 (*_pd)[i] = (*_master)[i];
             }
+            db<MMU>(WRN) << "Directory pd depois " << _pd << endl;
         }
 
         Directory(Page_Directory *pd) : _pd(pd), _free(false) {}
@@ -303,7 +315,6 @@ public:
             List::Element *e = _free.search_decrementing(bytes);
             if (e)
             {
-
                 db<MMU>(INF) << "Object: " << e->object() << endl;
                 size = e->size();
                 phy = reinterpret_cast<unsigned long>(e->object()) + e->size(); // PAGE_SIZE

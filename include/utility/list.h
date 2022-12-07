@@ -1356,7 +1356,7 @@ public:
     }
 
     void insert_merging(Element * e, Element ** m1, Element ** m2) {
-        db<Lists>(TRC) << "Grouping_List::insert_merging(e=" << e << ", e->size()=" << e->size() << ")" << endl;
+        db<Lists>(TRC) << "Grouping_List::insert_merging(e=" << e << ")" << endl;
 
         _grouped_size += e->size();
         *m1 = *m2 = 0;
@@ -1381,13 +1381,14 @@ public:
         print_head();
         print_tail();
 
-        Element *e = search_size(s);
-        if (e) {
+        Element * e = search_size(s);
+        if(e) {
             e->shrink(s);
             _grouped_size -= s;
-            if (!e->size())
+            if(!e->size())
                 remove(e);
         }
+
         return e;
     }
 
