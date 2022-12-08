@@ -20,13 +20,8 @@ void MMU::init()
 
     MMU::master(reinterpret_cast<Page_Directory *>(CPU::pdp()));
 
-    // free(align_page(sys_data_end), pages(Memory_Map::SYS_HIGH - align_page(sys_data_end))); // [align_page(&_end), 0x87bf9000]
     free(si->pmm.free1_base, pages(si->pmm.free1_top));
-    // free(Memory_Map::RAM_TOP + 1 - Traits<Machine>::STACK_SIZE * Traits<Machine>::CPUS, pages(Traits<Machine>::STACK_SIZE * Traits<Machine>::CPUS));
-    
-    // // Free init/setup memory
-    // free(Memory_Map::RAM_BASE, pages(Memory_Map::MMODE_F - Memory_Map::RAM_BASE));
-    // free(Memory_Map::INIT, pages(Memory_Map::SYS - Memory_Map::INIT));
+
 }
 
 __END_SYS

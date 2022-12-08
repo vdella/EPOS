@@ -27,14 +27,14 @@ public:
             db<Init>(INF) << "MULTIHEAP: Initializing system's heap: " << endl;
             db<Init>(WRN) << "Master Address: " << MMU::current() << endl;
 
-            System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
+            System::_heap_segment = new (&System::_preheap[0]) Segment(200, Segment::Flags::SYS);
             char * heap;
             db<Init>(INF) << "Heap Segment: " << System::_heap_segment << endl;
 
             if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment);
             else
-               { 
+               {
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
                 db<Init>(INF) << *MMU::current() << endl;
                 asm("break:");

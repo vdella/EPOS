@@ -108,14 +108,11 @@ public:
             }
         }
 
-        friend OStream & operator<<(OStream & os, _Page_Table & pt) {
+        friend OStream & operator<<(OStream & os, Page_Table & pt) {
             os << "{\n";
             for(unsigned int i = 0; i < PT_ENTRIES; i++)
                 if(pt[i]) {
-                    if(PD)
-                        os << "[" << i << "] \t" << pde2phy(pt[i]) << " " << hex << pde2flg(pt[i]) << dec << "\n";
-                    else
-                        os << "[" << i << "] \t" << pte2phy(pt[i]) << " " << hex << pte2flg(pt[i]) << dec << "\n";
+                  os << "[" << i << "] \t" << pde2phy(pt[i]) << " " << hex << pde2flg(pt[i]) << dec << "\n";
                 }
             os << "}";
             return os;
@@ -147,7 +144,6 @@ public:
             db<MMU>(WRN) << "Chunk pt " << _pt << endl;
             for (unsigned int i = 0; i < _pts; i++)
             {
-                // if(_to < 512 && _to > 0){ _from, _to} else {_from, 512  _to - 512}
                 if (_to < 512 && _to > 0)
                     (_pt + (i * PAGE_SIZE))->map(_flags, _from, _to);
                 else {
@@ -293,11 +289,9 @@ public:
             if (lvl2 > PD_ENTRIES_LVL_2 - 1)
                 return false;
 
-            if ((*_pd)[lvl2])
+            if (_pd->get_entry(lvl2))
             {
-
                 Page_Directory *pd1 = new ((void *)(pte2phy(_pd->get_entry(lvl2)))) Page_Directory();
-                // db<MMU>(WRN) << "Directory pd1 " << pd1 << endl;
 
                 for (unsigned int i = lvl1; i < lvl1 + n; i++)
                 {
@@ -306,16 +300,24 @@ public:
                         return false;
                     }
                 }
+                pd1->remap(pt, RV64_Flags::V, lvl1, lvl1+n);
+                db<MMU>(WRN) << *pd1 << endl;
+                // Page_Table *pt0 = new ((void *)(pte2phy(pd1->get_entry(lvl1)))) Page_Table();
 
-                for (unsigned int i = lvl1; i < lvl1 + n; i++, pt++)
-                {
-                    (*pd1)[i] = phy2pte(Phy_Addr(pt), RV64_Flags::V);
-                }
+                Page_Table * pt0 = (*static_cast<Page_Table *>(phy2log(pd1)))[lvl1];
+
+
+
+                db<MMU>(WRN) << *pt0 << endl;
+                db<MMU>(WRN) << *pt << endl;
+
+
                 return true;
             }
 
-            Page_Directory * pd1 = new ((void*)(_pd + (lvl2 + 1) * PAGE_SIZE)) Page_Directory();
+            Page_Directory * pd1 = new ((void*)(_pd + lvl2 * PAGE_SIZE)) Page_Directory();
             _pd->remap(pd1, RV64_Flags::V, lvl2, lvl2+1);
+            db<MMU>(WRN) << *pd1 << endl;
             return attach(lvl2, lvl1, pt, n, flags);
         }
 
@@ -408,6 +410,8 @@ public:
     static PT_Entry phy2pte(Phy_Addr bytes, RV64_Flags flags) { return ((bytes >> 12) << 10) | flags; }
 
     static Phy_Addr pte2phy(PT_Entry entry) { return (entry & ~RV64_Flags::MASK) << 2; }
+
+    static RV64_Flags pde2flg(PT_Entry entry) { return (entry & RV64_Flags::MASK); }
 
 private:
     static List _free;
