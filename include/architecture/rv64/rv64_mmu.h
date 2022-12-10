@@ -79,7 +79,6 @@ public:
 
         void map(RV64_Flags flags, int from, int to)
         {
-            db<MMU>(WRN) << "to - from=" << to - from << endl;
             Phy_Addr *addr = alloc(to - from);
             if (addr)
             {
@@ -87,7 +86,6 @@ public:
             }
             else
             {
-                db<MMU>(WRN) << "Entrou no else" << endl;
                 for (; from < to; from++)
                 {
                     ptes[from] = phy2pte(alloc(1), flags);
@@ -128,6 +126,10 @@ public:
         // from 0 to bytes % PAGE_SIZE
         // pts = number of page_tables
         // pages = number of pages
+
+
+
+        //TODO - Conferir o alloc/calloc do professor e o map do chunk
         Chunk(unsigned int bytes, Flags flags)
         {
 
@@ -135,20 +137,16 @@ public:
             _to = pages(bytes);
             _pts = page_tables(_to - _from);
             _bytes = bytes;
-
-            db<MMU>(WRN) << "Chunk from " << _from << " to " << _to << endl;
-            db<MMU>(WRN) << "Chunk pts " << _pts << endl;
-
             _flags = RV64_Flags(flags);
             _pt = calloc(_pts);
-            db<MMU>(WRN) << "Chunk pt " << _pt << endl;
+            unsigned int to = _to;
             for (unsigned int i = 0; i < _pts; i++)
             {
-                if (_to < 512 && _to > 0)
-                    (_pt + (i * PAGE_SIZE))->map(_flags, _from, _to);
+                if (to < 512 && to > 0)
+                    (_pt + (i * PAGE_SIZE))->map(_flags, _from, to);
                 else {
                     (_pt + (i * PAGE_SIZE))->map(_flags, _from, 512);
-                    _to -= 512;
+                    to -= 512;
                 }
             }
             // _pt->map(_flags, _from, _to);
@@ -185,16 +183,10 @@ public:
     public:
         Directory() : _pd(phy2log(calloc(513))), _free(true)
         {
-            db<MMU>(WRN) << "Directory pd antes " << _pd << endl;
             for (unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++)
             {
-                // db<MMU>(WRN) << "_master = " << _master << endl;
-                db<MMU>(WRN) << "_master[i] = " << _master->get_entry(i) << " " << i << endl;
-                // db<MMU>(WRN) << "i = " << i << endl;
                 (*_pd)[i] = _master->get_entry(i);
             }
-            db<MMU>(WRN) << "pte2phy = " << pte2phy(_master->get_entry(10)) << endl;
-            db<MMU>(WRN) << "Directory pd depois " << _pd << endl;
         }
 
         Directory(Page_Directory *pd) : _pd(pd), _free(false) {}
@@ -220,7 +212,6 @@ public:
                     if (attach(i, j, chunk.pt(), chunk.pts(), chunk.flags()))
                     {
                         Log_Addr addr = i << (DIRECTORY_SHIFT_LVL_2) | j << DIRECTORY_SHIFT_LVL_1;
-                        // db<MMU>(WRN) << "Attach Return: " << addr << "!!!!" << endl;
                         return addr;
                     }
             return false;
@@ -239,8 +230,6 @@ public:
                 return Log_Addr(false);
 
             Log_Addr result = lvl2 << (DIRECTORY_SHIFT_LVL_2) | lvl1 << DIRECTORY_SHIFT_LVL_1;
-            db<MMU>(WRN) << "result do attach ! = " << result << endl;
-
             if ((result >> 38) & 1) result |= 0xFFFFFF8000000000;
 
             return result;
@@ -285,7 +274,6 @@ public:
     private:
         bool attach(unsigned int lvl2, unsigned int lvl1, const Page_Table *pt, unsigned int n, RV64_Flags flags)
         {
-            db<MMU>(TRC) << "Entrou no attach" << endl;
             if (lvl2 > PD_ENTRIES_LVL_2 - 1)
                 return false;
 
@@ -302,13 +290,7 @@ public:
                 }
                 pd1->remap(pt, RV64_Flags::V, lvl1, lvl1+n);
                 db<MMU>(WRN) << *pd1 << endl;
-                // Page_Table *pt0 = new ((void *)(pte2phy(pd1->get_entry(lvl1)))) Page_Table();
 
-                Page_Table * pt0 = (*static_cast<Page_Table *>(phy2log(pd1)))[lvl1];
-
-
-
-                db<MMU>(WRN) << *pt0 << endl;
                 db<MMU>(WRN) << *pt << endl;
 
 
@@ -367,7 +349,7 @@ public:
     static Phy_Addr calloc(unsigned int bytes = 1)
     {
         Phy_Addr phy = alloc(bytes);
-        memset(phy2log(phy), 0, bytes * PAGE_SIZE);
+        memset(phy2log(phy), 0, bytes); //PAGE_SIZE
         return phy;
     }
 

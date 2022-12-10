@@ -13,15 +13,12 @@ int ELF::load_segment(int i, Elf64_Addr addr)
         return 0;
     }
 
-    db<Setup>(TRC) << "src " << segment_type(i) << endl;
     char * src = reinterpret_cast<char *>(CPU::Reg(this) + seg(i)->p_offset);
     char * dst = reinterpret_cast<char *>((addr) ? addr : segment_address(i));
-    db<Setup>(TRC) << "dst " << dst << endl;
-    
+
     memcpy(dst, src, seg(i)->p_filesz);
     memset(dst + seg(i)->p_filesz, 0, seg(i)->p_memsz - seg(i)->p_filesz);
 
-    db<Setup>(WRN) << "Return Load Segment" << endl;
 
     return seg(i)->p_memsz;
 }

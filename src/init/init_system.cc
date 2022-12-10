@@ -27,7 +27,7 @@ public:
             db<Init>(INF) << "MULTIHEAP: Initializing system's heap: " << endl;
             db<Init>(WRN) << "Master Address: " << MMU::current() << endl;
 
-            System::_heap_segment = new (&System::_preheap[0]) Segment(200, Segment::Flags::SYS);
+            System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
             char * heap;
             db<Init>(INF) << "Heap Segment: " << System::_heap_segment << endl;
 

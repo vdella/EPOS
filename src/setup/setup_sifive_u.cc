@@ -117,19 +117,10 @@ Setup::Setup()
 
     // Print basic facts about this EPOS instance
     say_hi();
-
     // build page tables
     init_mmu();
-
     build_lm();
-    // build_pmm();
-
-    // setup_sys_pt();
-
     load_parts();
-
-    // enable_paging();
-
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
     call_next();
 }
@@ -316,14 +307,10 @@ void Setup::build_lm()
     si->lm.sys_stack_size = Traits<System>::STACK_SIZE;
     if(si->lm.has_sys) {
         ELF * sys_elf = reinterpret_cast<ELF *>(&bi[si->bm.system_offset]);
-        for (int i = 0; i < sys_elf->segments(); i++) {
-          // db<Setup>(WRN) << "Segment!" << sys_elf->segment_size(i) << endl;
-        }
         if(!sys_elf->valid())
             db<Setup>(ERR) << "OS ELF image is corrupted!" << endl;
         si->lm.sys_entry = sys_elf->entry();
         for(int i = 0; i < sys_elf->segments(); i++) {
-            // db<Setup>(WRN) << "Index!" << i << endl;
             if((sys_elf->segment_size(i) == 0) || (sys_elf->segment_type(i) != PT_LOAD)) {
                 db<Setup>(WRN) << "OS ELF image has an invalid segment!" << sys_elf->segment_size(i) << endl;
                 continue;
@@ -344,12 +331,8 @@ void Setup::build_lm()
                 } else
                     si->lm.sys_code_size += sys_elf->segment_size(i);
             } else { // DATA
-                // db<Setup>(WRN) << "Segment Address!" << sys_elf->segment_address(i) << endl;
-                // db<Setup>(WRN) << "SYS DATA!" << si->lm.sys_data << endl;
-                // assert((si->lm.sys_data - sys_elf->segment_address(i)) > 0U);
                 if((si->lm.sys_data - sys_elf->segment_address(i)) > 0U) {
                   si->lm.sys_data = sys_elf->segment_address(i);
-                  // db<Setup>(WRN) << "Entrou!" << si->lm.sys_data << endl;
                 }
                 si->lm.sys_data_size += sys_elf->segment_size(i);
             }
@@ -386,9 +369,6 @@ void Setup::build_lm()
     si->lm.app_extra_size = 0;
     if(si->lm.has_app) {
         ELF * app_elf = reinterpret_cast<ELF *>(&bi[si->bm.application_offset]);
-        for (int i = 0; i < app_elf->segments(); i++) {
-          db<Setup>(WRN) << "Segment!" << app_elf->segment_size(i) << endl;
-        }
         if(!app_elf->valid())
             db<Setup>(ERR) << "APP ELF image is corrupted!" << endl;
         si->lm.app_entry = app_elf->entry();
@@ -401,10 +381,8 @@ void Setup::build_lm()
                 db<Setup>(WRN) << "Ignoring APP ELF segment " << i << " at " << hex << app_elf->segment_address(i) << "!"<< endl;
                 continue;
             }
-            db<Setup>(WRN) << "APP DATA!" << APP_DATA << endl;
             db<Setup>(WRN) << "APP Segment!" << app_elf->segment_address(i) << endl;
             if((APP_DATA - app_elf->segment_address(i)) > 0U) { // CODE
-                db<Setup>(WRN) << "Entrou Code!" << endl;
                 if(si->lm.app_code_size == 0) {
                     si->lm.app_code_size = app_elf->segment_size(i);
                     si->lm.app_code = app_elf->segment_address(i);
@@ -453,20 +431,21 @@ void Setup::init_mmu()
     unsigned int PT_ENTRIES = MMU::PT_ENTRIES;
     unsigned long pages = MMU::pages(RAM_TOP + 1);
 
-    kout << "Total Pages: " << pages << endl;
+
+    kout << "pages = " << pages << endl;
 
     unsigned total_pts = MMU::page_tables(pages);
-    kout << "Total Page Tables: " << total_pts << endl;
+    kout << "pts = " << total_pts << endl;
 
     unsigned int PD_ENTRIES_LVL_2 = total_pts / PT_ENTRIES;
     unsigned int PD_ENTRIES_LVL_1 = PT_ENTRIES;
     unsigned int PT_ENTRIES_LVL_0 = PT_ENTRIES;
 
-    kout << "LVL 2: " << PD_ENTRIES_LVL_2 << endl;
+    // kout << "LVL 2: " << PD_ENTRIES_LVL_2 << endl;
 
     Phy_Addr PD2_ADDR = PAGE_TABLES;
     Page_Directory *master = new ((void *)PD2_ADDR) Page_Directory();
-    kout << "Master Base Address: " << PD2_ADDR << endl;
+    kout << "SATP: " << PD2_ADDR << endl;
     PD2_ADDR += PAGE_SIZE;
 
     master->remap(PD2_ADDR, RV64_Flags::V, 0, PD_ENTRIES_LVL_2);
@@ -494,11 +473,12 @@ void Setup::init_mmu()
             PD1_ADDR += PD_ENTRIES_LVL_1 * PAGE_SIZE;
         }
     }
-    kout << "Page Table End Address" << PD1_ADDR << endl;
+    kout << "Last Directory" << PD2_ADDR << endl;
+    kout << "Last Page" << PD1_ADDR - 1 << endl;
 
-    kout << "Page Directory End Address" << PD2_ADDR << endl;
 
     // SYSTEM MAPPING
+    kout << "System Mapping" << endl;
 
     kout << "SIZE: " << (Phy_Addr) (SYS_HEAP - INIT) << endl;
     kout << "INDEX: " << MMU::directory_lvl_2(INIT) << endl;
@@ -527,12 +507,10 @@ void Setup::init_mmu()
     si->pmm.free1_base = RAM_BASE;
     si->pmm.free1_top = addr;
 
-    // MMU::master(master);
-
     // Set SATP and enable paging
-    db<Setup>(WRN) << "Set SATP" << endl;
+    // db<Setup>(WRN) << "Set SATP" << endl;
     CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
-    db<Setup>(WRN) << "Flush TLB" << endl;
+    // db<Setup>(WRN) << "Flush TLB" << endl;
     MMU::flush_tlb();
 
     // Flush TLB to ensure we've got the right memory organization

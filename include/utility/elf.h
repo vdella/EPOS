@@ -20,21 +20,11 @@ public:
 
     // check for ELF magic number
     bool valid() {
-        // db<ELF>(WRN) << "EI_MAG0 = " << EI_MAG0 << endl;
-        // db<ELF>(WRN) << "EI_MAG1 = " << EI_MAG1 << endl;
-        // db<ELF>(WRN) << "EI_MAG2 = " << EI_MAG2 << endl;
-        // db<ELF>(WRN) << "EI_MAG3 = " << EI_MAG3 << endl;
 
 
-        db<ELF>(WRN) << "ELF = " << ELFMAG0 << " " << ELFMAG1 << " " << ELFMAG2 << " " << ELFMAG3 << endl;
-        // db<ELF>(WRN) << "ELFMAG1 = " << ELFMAG1 << endl;
-        // db<ELF>(WRN) << "ELFMAG2 = " << ELFMAG2 << endl;
-        // db<ELF>(WRN) << "ELFMAG3 = " << ELFMAG3 << endl;
+        // db<ELF>(WRN) << "ELF = " << ELFMAG0 << " " << ELFMAG1 << " " << ELFMAG2 << " " << ELFMAG3 << endl;
 
-        db<ELF>(WRN) << "E_IDENT = " << e_ident[0] << " " << e_ident[1] << " " << e_ident[2] << " " << e_ident[3] << endl;
-        // db<ELF>(WRN) << "e_ident[1] = " << e_ident[1] << endl;
-        // db<ELF>(WRN) << "e_ident[2] = " << e_ident[2] << endl;
-        // db<ELF>(WRN) << "e_ident[3] = " << e_ident[3] << endl;
+        // db<ELF>(WRN) << "E_IDENT = " << e_ident[0] << " " << e_ident[1] << " " << e_ident[2] << " " << e_ident[3] << endl;
 
         return (e_ident[EI_MAG0] == ELFMAG0) && (e_ident[EI_MAG1] == ELFMAG1)
             && (e_ident[EI_MAG2] == ELFMAG2) && (e_ident[EI_MAG3] == ELFMAG3);
