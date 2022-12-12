@@ -18,7 +18,7 @@ class MMU : public MMU_Common<9, 9, 9, 12>
     friend class Setup_SifiveU;
 
 private:
-    typedef Grouping_List<Log_Addr> List;
+    typedef Grouping_List<Frame> List;
 
     static const unsigned long PHY_MEM = Memory_Map::PHY_MEM;
     static const unsigned long RAM_BASE = Memory_Map::RAM_BASE;
@@ -48,7 +48,7 @@ public:
             KD = (V | R | W),
             UD = (V | R | W | U),
             PD = (V | A | D),
-            UA = (V | R | W | X | U)
+            UA = (V | R | X | U)
         };
 
         RV64_Flags() {}
@@ -126,10 +126,6 @@ public:
         // from 0 to bytes % PAGE_SIZE
         // pts = number of page_tables
         // pages = number of pages
-
-
-
-        //TODO - Conferir o alloc/calloc do professor e o map do chunk
         Chunk(unsigned int bytes, Flags flags)
         {
 
@@ -320,24 +316,24 @@ public:
 public:
     MMU() {}
 
-    static Phy_Addr alloc(unsigned int bytes = 1)
+    static Phy_Addr alloc(unsigned int frames = 1)
     {
         Phy_Addr phy(false);
         unsigned long size = 0;
-        if (bytes)
+        if (frames)
         {
-            List::Element *e = _free.search_decrementing(bytes);
+            List::Element *e = _free.search_decrementing(frames);
             if (e)
             {
                 db<MMU>(INF) << "Object: " << e->object() << endl;
                 size = e->size();
-                phy = reinterpret_cast<unsigned long>(e->object()) + e->size(); // PAGE_SIZE
+                phy = e->object() + e->size(); // PAGE_SIZE
             }
             else
             {
                 db<MMU>(ERR) << "MMU::alloc() failed!" << endl;
             }
-            db<MMU>(INF) << "MMU::alloc(bytes=" << bytes << ") => " << phy << endl;
+            db<MMU>(INF) << "MMU::alloc(frames=" << frames << ") => " << phy << endl;
             db<MMU>(INF) << "MMU::List Element: " << sizeof(List::Element) << endl;
         }
 
@@ -346,10 +342,10 @@ public:
         return phy;
     };
 
-    static Phy_Addr calloc(unsigned int bytes = 1)
+    static Phy_Addr calloc(unsigned int frames = 1)
     {
-        Phy_Addr phy = alloc(bytes);
-        memset(phy2log(phy), 0, bytes); //PAGE_SIZE
+        Phy_Addr phy = alloc(frames);
+        memset(phy2log(phy), 0, frames); //PAGE_SIZE
         return phy;
     }
 
