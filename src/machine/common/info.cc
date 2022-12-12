@@ -73,12 +73,12 @@ OStream & operator<<(OStream & os, const System_Info & si)
        << ",sys_code={b="  << reinterpret_cast<void *>(si.lm.sys_code) << ",s=" << si.lm.sys_code_size << "}"
        << ",sys_data={b="  << reinterpret_cast<void *>(si.lm.sys_data) << ",s=" << si.lm.sys_data_size << "}"
        << ",sys_stack{b="  << reinterpret_cast<void *>(si.lm.sys_stack) << ",s=" << si.lm.sys_stack_size << "}"
-       << ",app_entry="    << reinterpret_cast<void *>(si.lm.app_entry)
-       << ",app_segments=" << si.lm.app_segments
-       << ",app_code={b="  << reinterpret_cast<void *>(si.lm.app_code) << ",s=" << si.lm.app_code_size << "}"
-       << ",app_data={b="  << reinterpret_cast<void *>(si.lm.app_data) << ",s=" << si.lm.app_data_size << "}"
-       << ",app_stack="    << reinterpret_cast<void *>(si.lm.app_stack)
-       << ",app_heap="     << reinterpret_cast<void *>(si.lm.app_heap)
+      //  << ",app_entry="    << reinterpret_cast<void *>(si.lm.app_entry)
+      //  << ",app_segments=" << si.lm.app_segments
+      //  << ",app_code={b="  << reinterpret_cast<void *>(si.lm.app_code) << ",s=" << si.lm.app_code_size << "}"
+      //  << ",app_data={b="  << reinterpret_cast<void *>(si.lm.app_data) << ",s=" << si.lm.app_data_size << "}"
+      //  << ",app_stack="    << reinterpret_cast<void *>(si.lm.app_stack)
+      //  << ",app_heap="     << reinterpret_cast<void *>(si.lm.app_heap)
 #endif
        << ",app_extra={b=" << reinterpret_cast<void *>(si.lm.app_extra) << ",s=" << si.lm.app_extra_size << "}"
        << "}"
@@ -88,4 +88,3 @@ OStream & operator<<(OStream & os, const System_Info & si)
 }
 
 __END_SYS
-

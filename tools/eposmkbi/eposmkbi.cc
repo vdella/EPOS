@@ -250,6 +250,14 @@ int main(int argc, char **argv)
     // Add the size of the image to the Boot_Map in System_Info (excluding BOOT)
     si.bm.img_size = image_size - boot_size;
 
+
+    fprintf(out, "    Setup Offset \"%lu\":", si.bm.setup_offset);
+    fprintf(out, "    Init Offset \"%lu\":", si.bm.init_offset);
+    fprintf(out, "    System Offset \"%lu\":", si.bm.system_offset);
+    fprintf(out, "    Application Offset \"%lu\":", si.bm.application_offset);
+
+
+
     // Add System_Info
     unsigned int si_offset = boot_size;
     fprintf(out, "    Adding system info");
@@ -305,11 +313,11 @@ int main(int argc, char **argv)
     // Show System Info
     if(print_si) {
         fprintf(out, "  System_Info->Boot_Map:\n");
-        fprintf(out, "    n_cpus:   \t%u\n", si.bm.n_cpus);
         fprintf(out, "    mem_base: \t%#010lx\n", si.bm.mem_base);
         fprintf(out, "    mem_top:  \t%#010lx\n", si.bm.mem_top);
         fprintf(out, "    mio_base: \t%#010lx\n", si.bm.mio_base);
         fprintf(out, "    mio_top:  \t%#010lx\n", si.bm.mio_top);
+        fprintf(out, "    n_cpus:   \t%u\n", si.bm.n_cpus);
         fprintf(out, "    node_id:  \t%d\n", si.bm.node_id);
         fprintf(out, "    space_x:  \t%d\n", si.bm.space_x);
         fprintf(out, "    space_y:  \t%d\n", si.bm.space_y);
@@ -527,18 +535,16 @@ bool parse_config(FILE * cfg_file, Configuration * cfg)
 //=============================================================================
 template<typename T> bool add_boot_map(int fd, System_Info * si)
 {
-    if(!put_number(fd, static_cast<T>(si->bm.n_cpus)))
-        return false;
     if(!put_number(fd, static_cast<T>(si->bm.mem_base)))
         return false;
     if(!put_number(fd, static_cast<T>(si->bm.mem_top)))
         return false;
-
     if(!put_number(fd, static_cast<T>(si->bm.mio_base)))
         return false;
     if(!put_number(fd, static_cast<T>(si->bm.mio_top)))
         return false;
-
+    if(!put_number(fd, si->bm.n_cpus))
+        return false;
     if(!put_number(fd, si->bm.node_id))
         return false;
     if(!put_number(fd, si->bm.space_x))
@@ -774,4 +780,3 @@ template<typename T> void invert(T & n)
         *h ^= *l;
     }
 }
-

@@ -19,24 +19,39 @@ public:
 
         db<Init>(INF) << "Init:si=" << *System::info() << endl;
 
-        db<Init>(INF) << "Initializing the architecture: " << endl;
+        db<Init>(WRN) << "Initializing the architecture: " << endl;
         CPU::init();
 
-        db<Init>(INF) << "Initializing system's heap: " << endl;
+        db<Init>(WRN) << "Initializing system's heap: " << endl;
         if(Traits<System>::multiheap) {
+            db<Init>(INF) << "MULTIHEAP: Initializing system's heap: " << endl;
+            db<Init>(WRN) << "Master Address: " << MMU::current() << endl;
+
             System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYS);
             char * heap;
+            db<Init>(INF) << "Heap Segment: " << System::_heap_segment << endl;
+
             if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment);
             else
+               {
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
+                db<Init>(INF) << *MMU::current() << endl;
+                asm("break:");
+               }
             if(!heap)
                 db<Init>(ERR) << "Failed to initialize the system's heap!" << endl;
             System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(heap, System::_heap_segment->size());
-        } else
-            System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
+            db<Init>(WRN) << "Heap: " << heap << endl;
 
-        db<Init>(INF) << "Initializing the machine: " << endl;
+        } else {
+          db<Init>(INF) << "MONOHEAP: Initializing system's heap: " << endl;
+          db<Init>(INF) << "Multieap: " << Traits<System>::multiheap << endl;
+          System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
+
+        }
+        db<Init>(INF) << "Heap Size: " << HEAP_SIZE << " | Pages : " << MMU::pages(HEAP_SIZE) << endl;
+        db<Init>(WRN) << "Initializing the machine: " << endl;
         Machine::init();
 
         db<Init>(INF) << "Initializing system abstractions: " << endl;

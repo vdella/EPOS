@@ -19,7 +19,13 @@ public:
     ELF() {}
 
     // check for ELF magic number
-    bool valid() { 
+    bool valid() {
+
+
+        // db<ELF>(WRN) << "ELF = " << ELFMAG0 << " " << ELFMAG1 << " " << ELFMAG2 << " " << ELFMAG3 << endl;
+
+        // db<ELF>(WRN) << "E_IDENT = " << e_ident[0] << " " << e_ident[1] << " " << e_ident[2] << " " << e_ident[3] << endl;
+
         return (e_ident[EI_MAG0] == ELFMAG0) && (e_ident[EI_MAG1] == ELFMAG1)
             && (e_ident[EI_MAG2] == ELFMAG2) && (e_ident[EI_MAG3] == ELFMAG3);
     }

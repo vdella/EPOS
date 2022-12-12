@@ -14,7 +14,7 @@ class Init_End
 {
 public:
     Init_End() {
-        db<Init>(TRC) << "Init_End()" << endl;
+        db<Init>(INF) << "Init_End()" << endl;
 
         if(!Traits<System>::multithread) {
             CPU::int_enable();

@@ -109,33 +109,14 @@ Setup::Setup()
 
 void Setup::setup_flat_paging()
 {
-    enum Section_Flags : unsigned long {
-        ID   = 0b10 << 0,   // memory section identifier
-        B    = 1 << 2,      // bufferable
-        C    = 1 << 3,      // cacheable
-        XN   = 1 << 4,      // execute never
-        AP0  = 1 << 10,
-        AP1  = 1 << 11,
-        TEX0 = 1 << 12,
-        TEX1 = 1 << 13,
-        TEX2 = 1 << 14,
-        AP2  = 1 << 15,
-        S    = 1 << 16,     // shareable
-        nG   = 1 << 17,     // non-global (entry in the TLB)
-        nS   = 1 << 19,     // non-secure
-        FLAT_MEMORY_MEM = (nS | S | AP1 | AP0 |       C | B | ID),
-        FLAT_MEMORY_DEV = (nS | S | AP1 | AP0 |       C |     ID),
-        FLAT_MEMORY_PER = (nS | S | AP1 | AP0 |  XN |     B | ID)
-    };
-
     // Single level with a single 16KB page table containing 4096 entries, each designating a 1 MB region
     db<Setup>(TRC) << "Setup::setup_flat_paging()" << endl;
 
     CPU::Reg * pt = reinterpret_cast<CPU::Reg *>(FLAT_PAGE_TABLE);
     for(CPU::Reg i = MMU_Common<10,10,12>::directory(RAM_BASE); i < MMU_Common<10,10,12>::directory(RAM_BASE) + MMU_Common<10,10,12>::pages(RAM_TOP - RAM_BASE); i++)
-        pt[i] = (i << 20) | Section_Flags::FLAT_MEMORY_MEM;
+        pt[i] = (i << 20) | ARMv7_MMU::Section_Flags::FLAT_MEMORY_MEM;
     for(CPU::Reg i = MMU_Common<10,10,12>::directory(MIO_BASE); i < MMU_Common<10,10,12>::directory(MIO_BASE) + MMU_Common<10,10,12>::pages(MIO_TOP - MIO_BASE) - 1; i++)
-        pt[i] = (i << 20) | Section_Flags::FLAT_MEMORY_DEV;
+        pt[i] = (i << 20) | ARMv7_MMU::Section_Flags::FLAT_MEMORY_DEV;
 }
 
 void Setup::enable_paging()

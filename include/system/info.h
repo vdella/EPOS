@@ -20,11 +20,11 @@ public:
     // Modifications to this map requires adjustments at MKBI and SETUP
     struct Boot_Map
     {
-        volatile unsigned short n_cpus;   // Number of CPUs in SMPs
         PAddr mem_base;                   // Memory base address
         PAddr mem_top;                    // Memory top address
         PAddr mio_base;                   // Memory-mapped I/O base address
         PAddr mio_top;                    // Memory-mapped I/O top address
+        volatile unsigned short n_cpus;   // Number of CPUs in SMPs
         short node_id;                    // Local node id in SAN (-1 => RARP)
         int space_x;                      // Spatial coordinates of a node (-1 => mobile)
         int space_y;                      //
@@ -54,6 +54,8 @@ public:
         PAddr sys_code;         // OS Code segment
         PAddr sys_data;         // OS Data segment
         PAddr sys_stack;        // OS Stack segment  (used only during init and for ukernels, with one stack per core)
+        PAddr ini_code;         // Init Code segment
+        PAddr ini_data;         // Init Data segment
         PAddr app_code;         // First Application code segment
         PAddr app_data;         // First Application data segment (including heap, stack, and extra)
         PAddr app_extra;        // APP EXTRA segment (copied from the boot image)

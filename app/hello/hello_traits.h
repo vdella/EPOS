@@ -9,13 +9,13 @@ __BEGIN_SYS
 template<> struct Traits<Build>: public Traits_Tokens
 {
     // Basic configuration
-    static const unsigned int MODE = LIBRARY;
+    static const unsigned int MODE = KERNEL;
     static const unsigned int ARCHITECTURE = RV64;
     static const unsigned int MACHINE = RISCV;
     static const unsigned int MODEL = SiFive_U;
     static const unsigned int CPUS = 1;
-    static const unsigned int NODES = 1; // (> 1 => NETWORKING)
-    static const unsigned int EXPECTED_SIMULATION_TIME = 60; // s (0 => not simulated)
+    static const unsigned int NODES = 1;  // (> 1 => NETWORKING)
+    static const unsigned int EXPECTED_SIMULATION_TIME = 100000000;  // s (0 => not simulated)
 
     // Default flags
     static const bool enabled = true;
@@ -33,8 +33,8 @@ template<> struct Traits<Debug>: public Traits<Build>
 {
     static const bool error   = true;
     static const bool warning = true;
-    static const bool info    = false;
-    static const bool trace   = false;
+    static const bool info    = true;
+    static const bool trace   = true;
 };
 
 template<> struct Traits<Lists>: public Traits<Build>
@@ -95,6 +95,7 @@ __BEGIN_SYS
 // API Components
 template<> struct Traits<Application>: public Traits<Build>
 {
+    // static const unsigned long APP_HEAP = Traits<Machine>::APP_HEAP;
     static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
     static const unsigned int HEAP_SIZE = Traits<Machine>::HEAP_SIZE;
     static const unsigned int MAX_THREADS = Traits<Machine>::MAX_THREADS;
@@ -104,7 +105,8 @@ template<> struct Traits<System>: public Traits<Build>
 {
     static const unsigned int mode = Traits<Build>::MODE;
     static const bool multithread = (Traits<Application>::MAX_THREADS > 1);
-    static const bool multiheap = Traits<Scratchpad>::enabled;
+    static const bool multitask = (mode != Traits<Build>::LIBRARY);
+    static const bool multiheap = multitask || Traits<Scratchpad>::enabled;
 
     static const unsigned long LIFE_SPAN = 1 * YEAR; // s
     static const unsigned int DUTY_CYCLE = 1000000; // ppm
@@ -115,6 +117,11 @@ template<> struct Traits<System>: public Traits<Build>
     static const unsigned int HEAP_SIZE = (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
 };
 
+template<> struct Traits<Task>: public Traits<Build>
+{
+    static const bool enabled = Traits<System>::multitask;
+};
+
 template<> struct Traits<Thread>: public Traits<Build>
 {
     static const bool enabled = Traits<System>::multithread;
@@ -122,7 +129,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const unsigned int QUANTUM = 10000; // us
 
-    typedef RR Criterion;
+    typedef FCFS Criterion;
 };
 
 template<> struct Traits<Scheduler<Thread>>: public Traits<Build>

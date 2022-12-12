@@ -5,7 +5,7 @@
 #include <machine.h>
 #include <system.h>
 
-extern "C" char _end; // defined by GCC
+// extern "C" char _end; // defined by GCC
 
 __BEGIN_SYS
 
@@ -17,12 +17,12 @@ private:
 
 public:
     Init_Application() {
-        db<Init>(TRC) << "Init_Application()" << endl;
+        // db<Init>(TRC) << "Init_Application()" << endl;
 
         // Initialize Application's heap
-        db<Init>(INF) << "Initializing application's heap: " << endl;
+        // db<Init>(INF) << "Initializing application's heap: " << endl;
         if(Traits<System>::multiheap) { // heap in data segment arranged by SETUP
-            char * heap = (MMU::align_page(&_end) >= CPU::Log_Addr(Memory_Map::APP_DATA)) ? MMU::align_page(&_end) : CPU::Log_Addr(Memory_Map::APP_DATA); // ld is eliminating the data segment in some compilations, particularly for RISC-V, and placing _end in the code segment
+            char * heap = (MMU::align_page(Memory_Map::APP_HEAP) >= CPU::Log_Addr(Memory_Map::APP_DATA)) ? MMU::align_page(Memory_Map::APP_HEAP) : CPU::Log_Addr(Memory_Map::APP_DATA); // ld is eliminating the data segment in some compilations, particularly for RISC-V, and placing _end in the code segment
             Application::_heap = new (&Application::_preheap[0]) Heap(heap, HEAP_SIZE);
         } else
             for(unsigned int frames = MMU::allocable(); frames; frames = MMU::allocable())

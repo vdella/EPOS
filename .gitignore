@@ -1,0 +1,14 @@
+# CLion's IDEA folder
+.idea/
+
+# VSCode's default folder
+.vscode/
+
+# Diffs from activities
+*.txt
+
+# Object files put by accident
+*.o
+
+# Executables put by accident
+*.rej

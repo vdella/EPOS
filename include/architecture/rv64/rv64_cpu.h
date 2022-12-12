@@ -11,7 +11,10 @@ class CPU: protected CPU_Common
 {
     friend class Init_System; // for CPU::init()
 
- public:
+private:
+    static const bool multitask = Traits<System>::multitask;
+
+public:
     // CPU Native Data Types
     using CPU_Common::Reg8;
     using CPU_Common::Reg16;
@@ -212,6 +215,15 @@ public:
     static Reg fr() { Reg r; ASM("mv %0, a0" :  "=r"(r)); return r; }
     static void fr(Reg r) {  ASM("mv a0, %0" : : "r"(r) :); }
 
+    //4 + 16 + (26 - 9) Ta certo (ou não)!
+    //ASID + MODE + 17(sobra do PPN2)
+    //Return PPN2|PPN1|PPN0
+    //mera conjectura
+    // static Reg pdp() { return satp() << 37; }
+
+    static Reg pdp() { return satp() << 12; }
+    static void pdp(Reg pdp) {satp((1UL << 63) | (pdp >> 12)); }
+
     static unsigned int id() { return 0; }
     static unsigned int cores() { return 1; }
 
@@ -220,9 +232,9 @@ public:
     using CPU_Common::max_clock;
     using CPU_Common::bus_clock;
 
-    static void int_enable()  { mint_enable(); }
-    static void int_disable() { mint_disable(); }
-    static bool int_enabled() { return (mstatus() & MIE); }
+    static void int_enable()  { multitask ? sint_enable()  : mint_enable(); }
+    static void int_disable() { multitask ? sint_disable() : mint_disable(); }
+    static bool int_enabled() { return multitask ? (sstatus() & SIE) : (mstatus() & MIE); }
     static bool int_disabled() { return !int_enabled(); }
 
     static void halt() { ASM("wfi"); }
@@ -329,20 +341,33 @@ public:
 
 public:
     // RISC-V 64 specifics
-    static Reg status()    { return mstatus(); }
-    static void status(Status st) { mstatus(st); }
+    static Reg  status()   { return multitask ? sstatus()   : mstatus(); }
+    static void status(Status st) { multitask ? sstatus(st) : mstatus(st); }
 
-    static Reg tp() { Reg r; ASM("mv %0, x4" : "=r"(r) :); return r; }
-    static void tp(Reg r) {  ASM("mv x4, %0" : : "r"(r) :); }
+    static Reg  ie()     { return multitask ? sie()         : mie(); }
+    static void ie(Reg r)       { multitask ? sie(r)        : mie(r); }
 
-    static Reg a0() { Reg r; ASM("mv %0, a0" :  "=r"(r)); return r; }
-    static void a0(Reg r) {  ASM("mv a0, %0" : : "r"(r) :); }
+    static Reg  ip()     { return multitask ? sip()         : mip(); }
+    static void ip(Reg r)       { multitask ? sip(r)        : mip(r); }
 
-    static Reg a1() { Reg r; ASM("mv %0, a1" :  "=r"(r)); return r; }
-    static void a1(Reg r) {  ASM("mv a1, %0" : : "r"(r) :); }
+    static Reg  cause()  { return multitask ? scause()      : mcause(); }
+
+    static Reg  tval()   { return multitask ? stval()       : mtval(); }
+
+    static Reg  epc()    { return multitask ? sepc()        : mepc(); }
+    static void epc(Reg r)      { multitask ? sepc(r)       : mepc(r); }
+
+    static Reg  tp() { Reg r; ASM("mv %0, x4" : "=r"(r) :); return r; }
+    static void tp(Reg r) {   ASM("mv x4, %0" : : "r"(r) :); }
+
+    static Reg  a0() { Reg r; ASM("mv %0, a0" :  "=r"(r)); return r; }
+    static void a0(Reg r) {   ASM("mv a0, %0" : : "r"(r) :); }
+
+    static Reg  a1() { Reg r; ASM("mv %0, a1" :  "=r"(r)); return r; }
+    static void a1(Reg r) {   ASM("mv a1, %0" : : "r"(r) :); }
 
     static void ecall() { ASM("ecall"); }
-    static void iret() { mret(); }
+    static void iret() { multitask ? sret() : mret(); }
 
     // Machine mode
     static void mint_enable()  { ASM("csrsi mstatus, %0" : : "i"(MIE) : "cc"); }
@@ -376,8 +401,11 @@ public:
 
     static void mret() { ASM("mret"); }
 
-    static void mideleg(Reg value) { ASM("csrw mideleg, %0" : : "r"(value) : "cc"); }
-    static void medeleg(Reg value) { ASM("csrw medeleg, %0" : : "r"(value) : "cc"); }
+    static void mideleg(Reg r) { ASM("csrw mideleg, %0" : : "r"(r) : "cc"); }
+    static void medeleg(Reg r) { ASM("csrw medeleg, %0" : : "r"(r) : "cc"); }
+
+    static void pmpcfg0(Reg r)  { ASM("csrw pmpcfg0,  %0" : : "r"(r) : "cc"); }
+    static void pmpaddr0(Reg r) { ASM("csrw pmpaddr0, %0" : : "r"(r) : "cc"); }
 
     // Supervisor mode
     static void sint_enable()  { ASM("csrsi sstatus, %0" : : "i"(SIE) : "cc"); }
@@ -432,13 +460,13 @@ inline void CPU::Context::push(bool interrupt)
     ASM("       addi     sp, sp, %0             \n" : : "i"(-sizeof(Context))); // adjust SP for the pushes below
 
 if(interrupt) {
-    ASM("       csrr     x3,    mepc            \n"
+    ASM("       csrr     x3,    sepc            \n"
         "       sd       x3,    0(sp)           \n");   // push MEPC as PC on interrupts
 } else {
     ASM("       sw       x1,    0(sp)           \n");   // push RA as PC on context switches
 }
 
-    ASM("       csrr     x3,  mstatus           \n");
+    ASM("       csrr     x3,  sstatus           \n");
 
     ASM("       sd       x3,    8(sp)           \n"     // push ST
         "       sd       x1,   16(sp)           \n"     // push RA
@@ -477,11 +505,11 @@ inline void CPU::Context::pop(bool interrupt)
 if(interrupt) {
     ASM("       add      x3, x3, a0             \n");   // a0 is set by exception handlers to adjust [M|S]EPC to point to the next instruction if needed
 }
-    ASM("       csrw     mepc, x3               \n");   // MEPC = PC
+    ASM("       csrw     sepc, x3               \n");   // MEPC = PC
 
     ASM("       ld       x3,    8(sp)           \n");   // pop ST into TMP
 if(!interrupt) {
-    ASM("       li       a0, 3 << 11            \n"     // use a0 as a second TMP, since it will be restored later
+    ASM("       li       a0, 1 << 8            \n"     // use a0 as a second TMP, since it will be restored later
         "       or       x3, x3, a0             \n");   // mstatus.MPP is automatically cleared on mret, so we reset it to MPP_M here
 }
 
@@ -515,7 +543,7 @@ if(!interrupt) {
         "       ld      x31,  232(sp)           \n"
         "       addi    sp, sp, %0              \n" : : "i"(sizeof(Context))); // complete the pops above by adjusting SP
 
-    ASM("       csrw    mstatus, x3             \n");   // MSTATUS = ST
+    ASM("       csrw    sstatus, x3             \n");   // MSTATUS = ST
 }
 
 inline CPU::Reg64 htole64(CPU::Reg64 v) { return CPU::htole64(v); }
