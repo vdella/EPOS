@@ -196,9 +196,9 @@ public:
 
     Task(Segment *cs, Segment *ds)
     {
-        _as = new (SYSTEM) Address_Space;
+        _as = new (SYSTEM) Address_Space();
         db<Task>(TRC) << "Task->_as" << _as << endl;
-        
+
         _cs = cs;
         db<Task>(TRC) << "Task->_cs" << _cs << endl;
 
@@ -221,10 +221,11 @@ public:
     }
 
     ~Task();
-    
+
     static void activate(volatile Task *t)
     {
         Task::_active = t;
+        db<Task>(TRC) << "Current Task AS" << t->_as << endl;
         t->_as->activate();
     }
 

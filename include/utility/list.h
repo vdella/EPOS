@@ -1356,12 +1356,17 @@ public:
     }
 
     void insert_merging(Element * e, Element ** m1, Element ** m2) {
-        db<Lists>(TRC) << "Grouping_List::insert_merging(e=" << e << ")" << endl;
+        db<Init, Lists>(TRC) << "Grouping_List::insert_merging(e=" << e << ")" << endl;
 
         _grouped_size += e->size();
         *m1 = *m2 = 0;
         Element * r = search(e->object() + e->size());
+        db<Init, Lists>(TRC) << "Search right =" << r << ")" << endl;
         Element * l = search_left(e->object());
+        db<Init, Lists>(TRC) << "Search left =" << l << ")" << endl;
+        db<Init, Lists>(TRC) << "Element size =" << e->size() << ")" << endl;
+
+
         if(!l) {
             insert_tail(e);
         }
@@ -1374,6 +1379,7 @@ public:
             l->size(l->size() + e->size());
             *m2 = e;
         }
+
     }
 
     Element * search_decrementing(unsigned long s) {

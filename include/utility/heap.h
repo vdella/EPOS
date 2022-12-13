@@ -28,10 +28,11 @@ public:
         db<Init, Heaps>(TRC) << "Heap(addr=" << addr << ",bytes=" << bytes << ") => " << this << endl;
 
         free(addr, bytes);
+
     }
 
     void * alloc(unsigned long bytes) {
-        db<Heaps>(TRC) << "Heap::alloc(this=" << this << ",bytes=" << bytes;
+        db<Init, Heaps>(TRC) << "Heap::alloc(this=" << this << ",bytes=" << bytes;
 
         if(!bytes)
             return 0;
@@ -58,13 +59,13 @@ public:
             *addr++ = reinterpret_cast<long>(this);
         *addr++ = bytes;
 
-        db<Heaps>(TRC) << ") => " << reinterpret_cast<void *>(addr) << endl;
+        db<Init, Heaps>(TRC) << ") => " << reinterpret_cast<void *>(addr) << endl;
 
         return addr;
     }
 
     void free(void * ptr, unsigned long bytes) {
-        db<Heaps>(TRC) << "Heap::free(this=" << this << ",ptr=" << ptr << ",bytes=" << bytes << ")" << endl;
+        db<Init, Heaps>(TRC) << "Heap::free(this=" << this << ",ptr=" << ptr << ",bytes=" << bytes << ")" << endl;
 
         if(ptr && (bytes >= sizeof(Element))) {
             Element * e = new (ptr) Element(reinterpret_cast<char *>(ptr), bytes);

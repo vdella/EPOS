@@ -444,6 +444,8 @@ void Setup::init_mmu()
     // kout << "LVL 2: " << PD_ENTRIES_LVL_2 << endl;
 
     Phy_Addr PD2_ADDR = PAGE_TABLES;
+    Phy_Addr pts = PAGE_TABLES;
+    kout << "Page Tables: " << pts << endl;
     Page_Directory *master = new ((void *)PD2_ADDR) Page_Directory();
     kout << "SATP: " << PD2_ADDR << endl;
     PD2_ADDR += PAGE_SIZE;
@@ -476,17 +478,19 @@ void Setup::init_mmu()
     kout << "Last Directory" << PD2_ADDR << endl;
     kout << "Last Page" << PD1_ADDR - 1 << endl;
 
-
     // SYSTEM MAPPING
     kout << "System Mapping" << endl;
 
     kout << "SIZE: " << (Phy_Addr) (SYS_HEAP - INIT) << endl;
     kout << "INDEX: " << MMU::directory_lvl_2(INIT) << endl;
 
+    kout << "PAGE_TABLES: "  << (Phy_Addr) PAGE_TABLES << endl;
+
+
     unsigned sys_pages = MMU::pages(SYS_HEAP - INIT);
     unsigned sys_pts = MMU::page_tables(sys_pages);
     int page = MMU::directory_lvl_2(INIT);
-    unsigned long addr = PAGE_TABLES + (1 + page) * PAGE_SIZE;
+    Phy_Addr addr = PAGE_TABLES + (1 + page) * PAGE_SIZE;
 
     master->remap(addr, RV64_Flags::V, page, page + 1);
     Page_Directory * sys_pd = new ((void *)addr) Page_Directory();
@@ -501,7 +505,7 @@ void Setup::init_mmu()
       sys_addr += PD_ENTRIES * PAGE_SIZE;
     }
 
-    db<Setup>(WRN) << "addr = " << addr << endl;
+    db<Setup>(WRN) << "addr = " << hex << addr << endl;
     db<Setup>(WRN) << "sys_addr = " << sys_addr << endl;
 
     si->pmm.free1_base = RAM_BASE;
@@ -511,9 +515,11 @@ void Setup::init_mmu()
     // db<Setup>(WRN) << "Set SATP" << endl;
     CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(master) >> 12));
     // db<Setup>(WRN) << "Flush TLB" << endl;
+    // Flush TLB to ensure we've got the right memory organization
     MMU::flush_tlb();
 
-    // Flush TLB to ensure we've got the right memory organization
+    asm("setup:");
+
 };
 
 void Setup::call_next()

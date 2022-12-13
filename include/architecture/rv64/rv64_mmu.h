@@ -135,17 +135,17 @@ public:
             _bytes = bytes;
             _flags = RV64_Flags(flags);
             _pt = calloc(_pts);
-            unsigned int to = _to;
-            for (unsigned int i = 0; i < _pts; i++)
-            {
-                if (to < 512 && to > 0)
-                    (_pt + (i * PAGE_SIZE))->map(_flags, _from, to);
-                else {
-                    (_pt + (i * PAGE_SIZE))->map(_flags, _from, 512);
-                    to -= 512;
-                }
-            }
-            // _pt->map(_flags, _from, _to);
+            // unsigned int to = _to;
+            // for (unsigned int i = 0; i < _pts; i++)
+            // {
+            //     if (to < 512 && to > 0)
+            //         (_pt + (i * PAGE_SIZE))->map(_flags, _from, to);
+            //     else {
+            //         (_pt + (i * PAGE_SIZE))->map(_flags, _from, 512);
+            //         to -= 512;
+            //     }
+            // }
+            _pt->map(_flags, _from, _to);
         }
 
         ~Chunk()
@@ -177,8 +177,10 @@ public:
     class Directory
     {
     public:
-        Directory() : _pd(phy2log(calloc(513))), _free(true)
+        Directory() : _pd(phy2log(calloc(1))), _free(true)
         {
+            db<MMU>(WRN) << "Build Directory: " << endl;
+
             for (unsigned int i = 0; i < PD_ENTRIES_LVL_1; i++)
             {
                 (*_pd)[i] = _master->get_entry(i);
@@ -196,6 +198,9 @@ public:
         Page_Table *pd() const { return _pd; }
 
         void activate() const {
+          db<MMU>(WRN) << "activate satp: " << endl;
+          db<MMU>(WRN) << _pd << endl;
+
           CPU::satp((1UL << 63) | (reinterpret_cast<unsigned long>(_pd) >> 12));
           MMU::flush_tlb();
         }
@@ -203,6 +208,7 @@ public:
         // Attach Chunk's PT into the Address Space and return the Page Directory base address.
         Log_Addr attach(const Chunk &chunk, unsigned int lvl2 = directory_lvl_2(APP_LOW), unsigned int lvl1 = directory_lvl_1(APP_LOW))
         {
+            db<MMU>(WRN) << "Attach Iterativo: " << lvl2 << endl;
             for (unsigned int i = lvl2; i < PD_ENTRIES_LVL_2; i++)
                 for (unsigned int j = lvl1; j < PD_ENTRIES_LVL_1 - chunk.pts(); j++)
                     if (attach(i, j, chunk.pt(), chunk.pts(), chunk.flags()))
@@ -277,17 +283,17 @@ public:
             {
                 Page_Directory *pd1 = new ((void *)(pte2phy(_pd->get_entry(lvl2)))) Page_Directory();
 
-                for (unsigned int i = lvl1; i < lvl1 + n; i++)
-                {
-                    if (pd1->get_entry(i))
-                    {
-                        return false;
-                    }
-                }
+                // for (unsigned int i = lvl1; i < lvl1 + n; i++)
+                // {
+                //     if (pd1->get_entry(i))
+                //     {
+                //         return false;
+                //     }
+                // }
                 pd1->remap(pt, RV64_Flags::V, lvl1, lvl1+n);
-                db<MMU>(WRN) << *pd1 << endl;
+                // db<MMU>(WRN) << *pd1 << endl;
 
-                db<MMU>(WRN) << *pt << endl;
+                // db<MMU>(WRN) << *pt << endl;
 
 
                 return true;
@@ -295,7 +301,7 @@ public:
 
             Page_Directory * pd1 = new ((void*)(_pd + lvl2 * PAGE_SIZE)) Page_Directory();
             _pd->remap(pd1, RV64_Flags::V, lvl2, lvl2+1);
-            db<MMU>(WRN) << *pd1 << endl;
+            // db<MMU>(WRN) << *pd1 << endl;
             return attach(lvl2, lvl1, pt, n, flags);
         }
 
@@ -361,9 +367,24 @@ public:
         {
             List::Element *e = new (addr) List::Element(addr, n);
             List::Element *m1, *m2;
+            db<MMU>(TRC) << "Creating Element: " << &m2 << endl;
             _free.insert_merging(e, &m1, &m2);
         }
-        db<MMU>(INF) << "List Size: " << _free.size() << endl;
+        db<MMU>(TRC) << "List Size: " << _free.size() << endl;
+    }
+
+    static void show_table(Log_Addr addr) {
+      unsigned long lvl2 = directory_lvl_2(addr);
+      unsigned long lvl1 = directory_lvl_1(addr);
+      db<MMU>(WRN) << "Master: " << lvl2 << endl;
+      db<MMU>(WRN) << *_master << endl;
+      Page_Directory *pd1 = new ((void *)(pte2phy(_master->get_entry(lvl2)))) Page_Directory();
+      db<MMU>(WRN) << "PN2: " << lvl1 << endl;
+      db<MMU>(WRN) << *pd1 << endl;
+      db<MMU>(WRN) << "PN1: " << lvl1 << endl;
+      Page_Table *pt = new ((void *)(pte2phy(pd1->get_entry(lvl1)))) Page_Table();
+      db<MMU>(WRN) << *pt << endl;
+
     }
 
     static unsigned int allocable() { return _free.head() ? _free.head()->size() : 0; }

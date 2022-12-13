@@ -13,7 +13,8 @@ void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
 
-    typedef int (Main)(int argc, char * argv[]);
+    // typedef int (Main)(int argc, char * argv[]);
+    typedef int (Main)();
 
     System_Info * si = System::info();
     Main * main;
@@ -30,13 +31,19 @@ void Thread::init()
     Criterion::init();
 
     if(Traits<System>::multitask) {
-      Address_Space * as = new (SYSTEM) Address_Space(MMU::current());
-      Segment * cs = new (SYSTEM) Segment(64 * 1024, MMU::RV64_Flags::UA);
-      Segment * ds = new (SYSTEM) Segment(64 * 1024, MMU::RV64_Flags::UD);
-      new (SYSTEM) Task(as, cs, ds);
+      // Address_Space * as = new (SYSTEM) Address_Space(MMU::current());
+      Segment * cs = new ((void*)Memory_Map::APP_CODE) Segment(64 * 1024, MMU::RV64_Flags::UA);
+      Segment * ds = new ((void*)Memory_Map::APP_DATA) Segment(64 * 1024, MMU::RV64_Flags::UD);
+      Task * app_task =  new (SYSTEM) Task(cs, ds);
 
-      if(si->lm.has_ext)
-      db<Init>(INF) << "Thread::init: additional data from mkbi at "  << reinterpret_cast<void *>(si->lm.app_extra) << ":" << si->lm.app_extra_size << endl;
+      db<Setup>(TRC) << "app_task = " << hex << app_task << endl;
+      Task::activate(app_task);
+
+      new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), reinterpret_cast<Main *>(main));
+
+      // We need to be in the AS of the first thread.
+      db<Init, Thread>(TRC) << "Task::activate()" << endl;
+      Task::activate(Thread::self()->_task);
 
     } else {
       // If EPOS is a library, then adjust the application entry point to __epos_app_entry,

@@ -36,7 +36,8 @@ public:
             else
                {
                 heap = Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
-                db<Init>(INF) << *MMU::current() << endl;
+                // db<Init>(INF) << *MMU::current() << endl;
+                MMU::show_table(Memory_Map::SYS_HEAP);
                 asm("break:");
                }
             if(!heap)
